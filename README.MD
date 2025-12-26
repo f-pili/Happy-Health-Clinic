@@ -351,10 +351,11 @@ DELETE /invoices/{id}                  # Delete invoice (ADMIN)
 
 ### Import Collection
 
-1. Open Postman
-2. Click **Import**
-3. Select file: `happy_health_clinic.postman_collection.json`
-4. Import
+1. Open **Postman**
+2. Click the **Import** button in the top-left corner
+3. Navigate to the project's root directory and enter the `/postman` folder
+4. Select the file: `happy_health_clinic.postman_collection.json`
+5. Click **Import** to finalize the process
 
 ### Variable Configuration
 
@@ -398,7 +399,7 @@ doctorId = (auto-populated)
 
 Below is the Entity–Relationship (ER) schema of the database, which provides a clear overview of the core entities and their relationships within the system.
 
-![ER Schema](./er-schema.png)
+![ER Schema](docs/er-schema.png)
 
 The schema can also be viewed and explored interactively on drawSQL at the following link:  
 [View ER Schema on drawSQL](https://drawsql.app/teams/epicode-university/diagrams/happy-health-clinic-system)
@@ -598,27 +599,33 @@ Total: 57 requests
 ## 📁 Project Structure
 ```
 happy-health-clinic/
+├── docs/                        # Technical documentation (e.g., ER Schema)
+├── postman/                     # API Testing
+│   └── happy_health_clinic.postman_collection.json
 ├── src/
 │   ├── main/
 │   │   ├── java/it/fpili/happy_health_clinic/
-│   │   │   ├── controllers/     # REST Controllers
+│   │   │   ├── controllers/     # REST Endpoints (Appointment, Auth, Doctor, etc.)
 │   │   │   ├── dto/             # Data Transfer Objects
-│   │   │   │   ├── request/     # Request DTOs
-│   │   │   │   └── response/    # Response DTOs
-│   │   │   ├── entities/        # JPA Entities
-│   │   │   ├── enums/           # Enumerations
-│   │   │   ├── exceptions/      # Custom Exceptions
-│   │   │   ├── repositories/    # Spring Data Repositories
-│   │   │   ├── security/        # JWT Filter & Utils
-│   │   │   ├── services/        # Business Logic
-│   │   │   └── HappyHealthClinicApplication.java
+│   │   │   │   ├── request/     # DTOs for incoming data validation
+│   │   │   │   └── response/    # DTOs for API output
+│   │   │   ├── entities/        # Domain model (User, Patient, Doctor, etc.)
+│   │   │   ├── enums/           # Enumerations (Role, Status, BloodType, etc.)
+│   │   │   ├── exceptions/      # Global exception handling logic
+│   │   │   ├── repositories/    # JPA Data access layer
+│   │   │   ├── security/        # JWT configuration and security filters
+│   │   │   ├── services/        # Business logic and external API integrations
+│   │   │   └── HappyHealthClinicApplication.java # Spring Boot entry point
 │   │   └── resources/
-│   │       ├── application.properties
-│   │       └── application-local.properties.template
-│   └── test/                    
-├── pom.xml
-├── happy_health_clinic.postman_collection.json
-└── README.md
+│   │       ├── application.properties               # Main configuration
+│   │       ├── application-local.properties         # Local config (DB password, API Keys)
+│   │       └── application-local.properties.template # Setup template for developers
+│   └── test/                    # Unit and integration tests
+├── .gitignore                   # Files and folders excluded from version control
+├── mvnw                         # Maven Wrapper
+├── pom.xml                      # Maven project dependencies
+└── README.md                    # Project overview and instructions
+
 ```
 
 ---
