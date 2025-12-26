@@ -1,0 +1,4504 @@
+{
+	"info": {
+		"_postman_id": "07a68710-e0a0-484e-9cf8-dff39217279c",
+		"name": "Happy Health Clinic API",
+		"description": "Complete REST API for Happy Health Clinic - EPICODE Backend Project\n\nBase URL: [http://localhost:3001](http://localhost:3001)\n\nFeatures:  \n✅ JWT Authentication  \n✅ Full CRUD for Patients, Doctors, Staff  \n✅ Appointments with OpenWeather integration  \n✅ Medical Records & Prescriptions with FDA Drug API  \n✅ Invoices with Mailgun email notifications\n\nSetup:\n\n1. Run \"0. Setup → Create Admin\"\n    \n2. Run \"1. Authentication → Login\"\n    \n3. Execute requests in order\n    \n\nAuthor: Filippo Pili  \nDate: December 2025",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "50938774",
+		"_collection_link": "https://fil-pili-9212068.postman.co/workspace/Filippo-Pili's-Workspace~2dab0f19-c31c-471c-8c66-dd44ba733d82/collection/50938774-07a68710-e0a0-484e-9cf8-dff39217279c?action=share&source=collection_link&creator=50938774"
+	},
+	"item": [
+		{
+			"name": "0. SETUP",
+			"item": [
+				{
+					"name": "0.1 Create Admin User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Admin created successfully\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"    pm.expect(pm.response.text()).to.include(\"Admin created successfully\");\r",
+									"});\r",
+									"\r",
+									"console.log(\"✅ Admin user created!\");\r",
+									"console.log(\"⚠️  Run this only ONCE!\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"packages": {},
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/setup/create-admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"setup",
+								"create-admin"
+							]
+						},
+						"description": "Creates the initial admin user for the clinic.\n\n⚠️ IMPORTANT: Run this request ONLY ONCE before any other requests.\n\nThis endpoint is publicly accessible (no authentication required).  \nAfter creating the admin, proceed to \"1.1 Authentication → Login\"."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "1. AUTHENTICATION",
+			"item": [
+				{
+					"name": "1.1 Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.collectionVariables.set(\"token\", jsonData.accessToken);\r",
+									"    \r",
+									"    console.log(\"✅ Login successful!\");\r",
+									"    console.log(\"👤 User:\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"📧 Email:\", jsonData.email);\r",
+									"    console.log(\"🎭 Role:\", jsonData.role);\r",
+									"    console.log(\"🔑 Token saved to collection variables\");\r",
+									"    console.log(\"\");\r",
+									"    console.log(\"➡️  Token will be used automatically in all authenticated requests\");\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Login successful\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has token\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.accessToken).to.exist;\r",
+									"    pm.expect(jsonData.accessToken).to.be.a('string');\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has user data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.email).to.eql(pm.collectionVariables.get(\"adminEmail\"));\r",
+									"    pm.expect(jsonData.role).to.exist;\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"{{adminEmail}}\",\r\n  \"password\": \"{{adminPassword}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticates user and returns JWT token.\n\nThe token is automatically saved to collection variable and will be used for all subsequent authenticated requests."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Register New Patient",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate random patient data\r",
+									"const firstName = pm.variables.replaceIn('{{$randomFirstName}}');\r",
+									"const lastName = pm.variables.replaceIn('{{$randomLastName}}');\r",
+									"\r",
+									"// Generate email from name\r",
+									"const email = firstName.toLowerCase() + '.' + lastName.toLowerCase() + '@email.com';\r",
+									"\r",
+									"// Generate random Italian phone number\r",
+									"const phonePrefix = ['340', '345', '347', '348', '349', '380', '383', '388', '389'];\r",
+									"const randomPrefix = phonePrefix[Math.floor(Math.random() * phonePrefix.length)];\r",
+									"const phoneNumber = '+39 ' + randomPrefix + ' ' + Math.floor(1000000 + Math.random() * 9000000);\r",
+									"\r",
+									"// Generate random date of birth (age between 18-80)\r",
+									"const currentYear = new Date().getFullYear();\r",
+									"const birthYear = currentYear - Math.floor(Math.random() * 62 + 18);\r",
+									"const birthMonth = String(Math.floor(Math.random() * 12 + 1)).padStart(2, '0');\r",
+									"const birthDay = String(Math.floor(Math.random() * 28 + 1)).padStart(2, '0');\r",
+									"const dateOfBirth = `${birthYear}-${birthMonth}-${birthDay}`;\r",
+									"\r",
+									"// Generate Italian tax ID (exactly 16 characters)\r",
+									"const surnameCode = (lastName.substring(0, 3).toUpperCase() + 'XXX').substring(0, 3);\r",
+									"const nameCode = (firstName.substring(0, 3).toUpperCase() + 'XXX').substring(0, 3);\r",
+									"const yearCode = birthYear.toString().substring(2);\r",
+									"const monthCodes = ['A', 'B', 'C', 'D', 'E', 'H', 'L', 'M', 'P', 'R', 'S', 'T'];\r",
+									"const monthCode = monthCodes[parseInt(birthMonth) - 1];\r",
+									"const dayCode = birthDay;\r",
+									"const placeCode = 'H501'; \r",
+									"const controlChar = String.fromCharCode(65 + Math.floor(Math.random() * 26));\r",
+									"\r",
+									"const taxId = surnameCode + nameCode + yearCode + monthCode + dayCode + placeCode + controlChar;\r",
+									"\r",
+									"// Generate random address\r",
+									"const streetNames = ['Roma', 'Garibaldi', 'Dante', 'Mazzini', 'Cavour', 'Verdi', \r",
+									"                     'Vittorio Emanuele', 'Gramsci', 'Matteotti', 'San Francesco'];\r",
+									"const streetName = streetNames[Math.floor(Math.random() * streetNames.length)];\r",
+									"const streetNumber = Math.floor(Math.random() * 200 + 1);\r",
+									"const address = `Via ${streetName} ${streetNumber}`;\r",
+									"\r",
+									"// Random city in Sardinia\r",
+									"const cities = ['Cagliari', 'Sassari', 'Quartu Sant\\'Elena', 'Olbia', 'Alghero', 'Nuoro', 'Oristano'];\r",
+									"const city = cities[Math.floor(Math.random() * cities.length)];\r",
+									"\r",
+									"// Province based on city\r",
+									"const provinceMap = {\r",
+									"    'Cagliari': 'CA', 'Sassari': 'SS', 'Quartu Sant\\'Elena': 'CA',\r",
+									"    'Olbia': 'SS', 'Alghero': 'SS', 'Nuoro': 'NU', 'Oristano': 'OR'\r",
+									"};\r",
+									"const province = provinceMap[city];\r",
+									"\r",
+									"// Random ZIP code (Sardinia: 07xxx-09xxx)\r",
+									"const zipCode = '09' + String(Math.floor(Math.random() * 900 + 100));\r",
+									"\r",
+									"// Random blood type\r",
+									"const bloodTypes = ['A_POSITIVE', 'A_NEGATIVE', 'B_POSITIVE', 'B_NEGATIVE', \r",
+									"                    'AB_POSITIVE', 'AB_NEGATIVE', 'O_POSITIVE', 'O_NEGATIVE'];\r",
+									"const bloodType = bloodTypes[Math.floor(Math.random() * bloodTypes.length)];\r",
+									"\r",
+									"// Random allergies (50% chance)\r",
+									"const commonAllergies = ['Penicillin', 'Pollen', 'Dust', 'Nuts', 'Lactose', 'Shellfish'];\r",
+									"let allergies = '';\r",
+									"if (Math.random() > 0.5) {\r",
+									"    const numAllergies = Math.floor(Math.random() * 3 + 1);\r",
+									"    const selectedAllergies = [];\r",
+									"    for (let i = 0; i < numAllergies; i++) {\r",
+									"        const allergy = commonAllergies[Math.floor(Math.random() * commonAllergies.length)];\r",
+									"        if (!selectedAllergies.includes(allergy)) {\r",
+									"            selectedAllergies.push(allergy);\r",
+									"        }\r",
+									"    }\r",
+									"    allergies = selectedAllergies.join(', ');\r",
+									"}\r",
+									"\r",
+									"// Random chronic diseases (30% chance)\r",
+									"const chronicDiseasesList = ['Hypertension', 'Type 2 Diabetes', 'Asthma', 'Arthritis', 'Hypothyroidism'];\r",
+									"let chronicDiseases = '';\r",
+									"if (Math.random() > 0.7) {\r",
+									"    const numDiseases = Math.floor(Math.random() * 2 + 1);\r",
+									"    const selectedDiseases = [];\r",
+									"    for (let i = 0; i < numDiseases; i++) {\r",
+									"        const disease = chronicDiseasesList[Math.floor(Math.random() * chronicDiseasesList.length)];\r",
+									"        if (!selectedDiseases.includes(disease)) {\r",
+									"            selectedDiseases.push(disease);\r",
+									"        }\r",
+									"    }\r",
+									"    chronicDiseases = selectedDiseases.join(', ');\r",
+									"}\r",
+									"\r",
+									"// Save to collection variables\r",
+									"pm.collectionVariables.set('tempFirstName', firstName);\r",
+									"pm.collectionVariables.set('tempLastName', lastName);\r",
+									"pm.collectionVariables.set('tempEmail', email);\r",
+									"pm.collectionVariables.set('tempPhone', phoneNumber);\r",
+									"pm.collectionVariables.set('tempDOB', dateOfBirth);\r",
+									"pm.collectionVariables.set('tempTaxId', taxId);\r",
+									"pm.collectionVariables.set('tempAddress', address);\r",
+									"pm.collectionVariables.set('tempCity', city);\r",
+									"pm.collectionVariables.set('tempProvince', province);\r",
+									"pm.collectionVariables.set('tempZipCode', zipCode);\r",
+									"pm.collectionVariables.set('tempBloodType', bloodType);\r",
+									"pm.collectionVariables.set('tempAllergies', allergies);\r",
+									"pm.collectionVariables.set('tempChronicDiseases', chronicDiseases);\r",
+									"\r",
+									"console.log(\"🎲 Random Patient Data Generated:\");\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"👤 Name:\", firstName, lastName);\r",
+									"console.log(\"📧 Email:\", email);\r",
+									"console.log(\"📞 Phone:\", phoneNumber);\r",
+									"console.log(\"🎂 DOB:\", dateOfBirth, `(Age: ${currentYear - birthYear})`);\r",
+									"console.log(\"🆔 Tax ID:\", taxId, `(Length: ${taxId.length})`);\r",
+									"console.log(\"🏠 Address:\", address);\r",
+									"console.log(\"🌍 City:\", city, `(${province})`);\r",
+									"console.log(\"📮 ZIP:\", zipCode);\r",
+									"console.log(\"🩸 Blood Type:\", bloodType);\r",
+									"if (allergies) console.log(\"⚠️  Allergies:\", allergies);\r",
+									"if (chronicDiseases) console.log(\"⚕️  Chronic Diseases:\", chronicDiseases);\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"\r",
+									"// Validation check\r",
+									"if (taxId.length !== 16) {\r",
+									"    console.error(\"❌ ERROR: Tax ID is not 16 characters!\");\r",
+									"    console.error(\"Tax ID:\", taxId);\r",
+									"    console.error(\"Length:\", taxId.length);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    // Save patient ID (will overwrite previous, keeping only the last one)\r",
+									"    pm.collectionVariables.set(\"patientId\", jsonData.id);\r",
+									"    \r",
+									"    console.log(\"\");\r",
+									"    console.log(\"✅ PATIENT REGISTERED SUCCESSFULLY!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 Patient ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Name:\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"📧 Email:\", jsonData.email);\r",
+									"    console.log(\"📋 Patient Code:\", jsonData.patientCode);\r",
+									"    console.log(\"🩸 Blood Type:\", jsonData.bloodType);\r",
+									"    if (jsonData.allergies) console.log(\"⚠️  Allergies:\", jsonData.allergies);\r",
+									"    if (jsonData.chronicDiseases) console.log(\"⚕️  Chronic Diseases:\", jsonData.chronicDiseases);\r",
+									"    console.log(\"💾 ID saved to collection variable 'patientId'\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"\");\r",
+									"    console.log(\"🔑 Login credentials:\");\r",
+									"    console.log(\"   Email:\", jsonData.email);\r",
+									"    console.log(\"   Password: Password123!\");\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Patient registered successfully\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has patient data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.email).to.exist;\r",
+									"    pm.expect(jsonData.role).to.eql(\"PATIENT\");\r",
+									"    pm.expect(jsonData.patientCode).to.exist;\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Patient has required fields\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.firstName).to.exist;\r",
+									"    pm.expect(jsonData.lastName).to.exist;\r",
+									"    pm.expect(jsonData.taxId).to.exist;\r",
+									"    pm.expect(jsonData.bloodType).to.exist;\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstName\": \"{{tempFirstName}}\",\r\n  \"lastName\": \"{{tempLastName}}\",\r\n  \"email\": \"{{tempEmail}}\",\r\n  \"password\": \"Password123!\",\r\n  \"phoneNumber\": \"{{tempPhone}}\",\r\n  \"dateOfBirth\": \"{{tempDOB}}\",\r\n  \"role\": \"PATIENT\",\r\n  \"taxId\": \"{{tempTaxId}}\",\r\n  \"address\": \"{{tempAddress}}\",\r\n  \"city\": \"{{tempCity}}\",\r\n  \"province\": \"{{tempProvince}}\",\r\n  \"zipCode\": \"{{tempZipCode}}\",\r\n  \"bloodType\": \"{{tempBloodType}}\",\r\n  \"allergies\": \"{{tempAllergies}}\",\r\n  \"chronicDiseases\": \"{{tempChronicDiseases}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for login and patient registration.\n\nEndpoints:\n\n- Login: Get JWT token for authenticated requests\n    \n- Register: Create new patient accounts"
+		},
+		{
+			"name": "2. DOCTORS",
+			"item": [
+				{
+					"name": "2.1 Register New Doctor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate random doctor data\r",
+									"const firstName = pm.variables.replaceIn('{{$randomFirstName}}');\r",
+									"const lastName = pm.variables.replaceIn('{{$randomLastName}}');\r",
+									"const email = firstName.toLowerCase() + '.' + lastName.toLowerCase() + '@clinic.com';\r",
+									"\r",
+									"// Generate random Italian phone number\r",
+									"const phonePrefix = ['345', '346', '347', '348', '349'];\r",
+									"const randomPrefix = phonePrefix[Math.floor(Math.random() * phonePrefix.length)];\r",
+									"const phoneNumber = '+39 ' + randomPrefix + ' ' + Math.floor(1000000 + Math.random() * 9000000);\r",
+									"\r",
+									"// Emergency contact (different number)\r",
+									"const emergencyPrefix = phonePrefix[Math.floor(Math.random() * phonePrefix.length)];\r",
+									"const emergencyContact = '+39 ' + emergencyPrefix + ' ' + Math.floor(1000000 + Math.random() * 9000000);\r",
+									"\r",
+									"// Generate random date of birth (age between 30-60 for doctors)\r",
+									"const currentYear = new Date().getFullYear();\r",
+									"const birthYear = currentYear - Math.floor(Math.random() * 30 + 30); // 30-60 years old\r",
+									"const birthMonth = String(Math.floor(Math.random() * 12 + 1)).padStart(2, '0');\r",
+									"const birthDay = String(Math.floor(Math.random() * 28 + 1)).padStart(2, '0');\r",
+									"const dateOfBirth = `${birthYear}-${birthMonth}-${birthDay}`;\r",
+									"\r",
+									"// Generate random hire date (between 2015-2023)\r",
+									"const hireYear = Math.floor(Math.random() * 9 + 2015); // 2015-2023\r",
+									"const hireMonth = String(Math.floor(Math.random() * 12 + 1)).padStart(2, '0');\r",
+									"const hireDay = String(Math.floor(Math.random() * 28 + 1)).padStart(2, '0');\r",
+									"const hireDate = `${hireYear}-${hireMonth}-${hireDay}`;\r",
+									"\r",
+									"// Calculate years of experience (random between hire year and now)\r",
+									"const yearsExperience = currentYear - hireYear + Math.floor(Math.random() * 10);\r",
+									"\r",
+									"// Random salary (based on experience: 60k-120k)\r",
+									"const baseSalary = 60000;\r",
+									"const experienceBonus = yearsExperience * 2000;\r",
+									"const randomBonus = Math.floor(Math.random() * 10000);\r",
+									"const salary = baseSalary + experienceBonus + randomBonus;\r",
+									"\r",
+									"// Random specializations\r",
+									"const specializations = [\r",
+									"    { name: 'Pediatrics', dept: 'Pediatrics', bio: 'pediatric care, child development, and preventive care' },\r",
+									"    { name: 'Orthopedics', dept: 'Orthopedics', bio: 'sports injuries, joint replacement, and musculoskeletal disorders' },\r",
+									"    { name: 'Cardiology', dept: 'Cardiology', bio: 'cardiovascular diseases, heart failure, and cardiac rehabilitation' },\r",
+									"    { name: 'Dermatology', dept: 'Dermatology', bio: 'skin diseases, cosmetic procedures, and dermatologic surgery' },\r",
+									"    { name: 'Neurology', dept: 'Neurology', bio: 'neurological disorders, stroke management, and epilepsy treatment' },\r",
+									"    { name: 'Psychiatry', dept: 'Psychiatry', bio: 'mental health disorders, psychotherapy, and medication management' },\r",
+									"    { name: 'General Surgery', dept: 'Surgery', bio: 'surgical procedures, trauma care, and emergency surgery' },\r",
+									"    { name: 'Ophthalmology', dept: 'Ophthalmology', bio: 'eye diseases, vision correction, and cataract surgery' },\r",
+									"    { name: 'Oncology', dept: 'Oncology', bio: 'cancer treatment, chemotherapy, and palliative care' },\r",
+									"    { name: 'Radiology', dept: 'Radiology', bio: 'medical imaging, diagnostic procedures, and interventional radiology' }\r",
+									"];\r",
+									"\r",
+									"const randomSpec = specializations[Math.floor(Math.random() * specializations.length)];\r",
+									"const specialization = randomSpec.name;\r",
+									"const department = randomSpec.dept;\r",
+									"\r",
+									"// Generate license number\r",
+									"const licenseNumber = 'DOC' + Math.floor(100000 + Math.random() * 900000);\r",
+									"\r",
+									"// Generate biography\r",
+									"const seniority = yearsExperience > 15 ? 'Senior specialist' : yearsExperience > 10 ? 'Experienced specialist' : 'Specialist';\r",
+									"const biography = `${seniority} in ${randomSpec.bio} with ${yearsExperience} years of experience.`;\r",
+									"\r",
+									"// Employee status (ACTIVE for new doctors)\r",
+									"const employeeStatus = 'ACTIVE';\r",
+									"\r",
+									"// Save to collection variables\r",
+									"pm.collectionVariables.set('tempDoctorFirstName', firstName);\r",
+									"pm.collectionVariables.set('tempDoctorLastName', lastName);\r",
+									"pm.collectionVariables.set('tempDoctorEmail', email);\r",
+									"pm.collectionVariables.set('tempDoctorPhone', phoneNumber);\r",
+									"pm.collectionVariables.set('tempDoctorEmergency', emergencyContact);\r",
+									"pm.collectionVariables.set('tempDoctorDOB', dateOfBirth);\r",
+									"pm.collectionVariables.set('tempDoctorHireDate', hireDate);\r",
+									"pm.collectionVariables.set('tempDoctorSalary', salary);\r",
+									"pm.collectionVariables.set('tempDoctorEmployeeStatus', employeeStatus);\r",
+									"pm.collectionVariables.set('tempDoctorDepartment', department);\r",
+									"pm.collectionVariables.set('tempDoctorLicense', licenseNumber);\r",
+									"pm.collectionVariables.set('tempDoctorSpecialization', specialization);\r",
+									"pm.collectionVariables.set('tempDoctorBiography', biography);\r",
+									"\r",
+									"console.log(\"🎲 Random Doctor Data Generated:\");\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"👨‍⚕️ Dr.\", firstName, lastName);\r",
+									"console.log(\"📧 Email:\", email);\r",
+									"console.log(\"📞 Phone:\", phoneNumber);\r",
+									"console.log(\"🚨 Emergency:\", emergencyContact);\r",
+									"console.log(\"🎂 DOB:\", dateOfBirth, `(Age: ${currentYear - birthYear})`);\r",
+									"console.log(\"📅 Hire Date:\", hireDate);\r",
+									"console.log(\"⏱️  Experience:\", yearsExperience, \"years\");\r",
+									"console.log(\"💼 Status:\", employeeStatus);\r",
+									"console.log(\"🏥 Specialization:\", specialization);\r",
+									"console.log(\"🏢 Department:\", department);\r",
+									"console.log(\"📜 License:\", licenseNumber);\r",
+									"console.log(\"💰 Salary: €\" + salary.toLocaleString());\r",
+									"console.log(\"📝 Biography:\", biography);\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.collectionVariables.set(\"doctorId\", jsonData.id);\r",
+									"    \r",
+									"    console.log(\"\");\r",
+									"    console.log(\"✅ DOCTOR CREATED SUCCESSFULLY!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👨‍⚕️ Dr.\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"🏥 Specialization:\", jsonData.specialization);\r",
+									"    console.log(\"🏢 Department:\", jsonData.department);\r",
+									"    console.log(\"📜 License:\", jsonData.licenseNumber);\r",
+									"    console.log(\"📋 Employee Code:\", jsonData.employeeCode);\r",
+									"    console.log(\"💰 Salary: €\" + jsonData.salary.toLocaleString());\r",
+									"    console.log(\"📅 Hire Date:\", jsonData.hireDate);\r",
+									"    console.log(\"💾 ID saved to variable 'doctorId'\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"\");\r",
+									"    console.log(\"🔑 Login credentials:\");\r",
+									"    console.log(\"   Email:\", jsonData.email);\r",
+									"    console.log(\"   Password: Password123!\");\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Doctor created successfully\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has doctor data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.specialization).to.exist;\r",
+									"    pm.expect(jsonData.licenseNumber).to.exist;\r",
+									"    pm.expect(jsonData.employeeCode).to.exist;\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Doctor has employee fields\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.salary).to.be.greaterThan(0);\r",
+									"    pm.expect(jsonData.department).to.exist;\r",
+									"    pm.expect(jsonData.hireDate).to.exist;\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Doctor has medical license\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.licenseNumber).to.match(/^DOC\\d{6}$/);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstName\": \"{{tempDoctorFirstName}}\",\r\n  \"lastName\": \"{{tempDoctorLastName}}\",\r\n  \"email\": \"{{tempDoctorEmail}}\",\r\n  \"password\": \"Password123!\",\r\n  \"phoneNumber\": \"{{tempDoctorPhone}}\",\r\n  \"dateOfBirth\": \"{{tempDoctorDOB}}\",\r\n  \"emergencyContact\": \"{{tempDoctorEmergency}}\",\r\n  \"hireDate\": \"{{tempDoctorHireDate}}\",\r\n  \"salary\": {{tempDoctorSalary}},\r\n  \"employeeStatus\": \"ACTIVE\",\r\n  \"department\": \"{{tempDoctorDepartment}}\",\r\n  \"licenseNumber\": \"{{tempDoctorLicense}}\",\r\n  \"specialization\": \"{{tempDoctorSpecialization}}\",\r\n  \"biography\": \"{{tempDoctorBiography}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/doctors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"doctors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Get All Doctors",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response is paginated\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.content).to.be.an('array');\r",
+									"    pm.expect(jsonData.totalElements).to.exist;\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"📋 DOCTORS LIST\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.totalElements, \"doctors\");\r",
+									"    console.log(\"📄 Page:\", jsonData.number + 1, \"of\", jsonData.totalPages);\r",
+									"    console.log(\"📦 Showing:\", jsonData.numberOfElements);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.content.forEach((doc, index) => {\r",
+									"        console.log(`${index + 1}. Dr. ${doc.firstName} ${doc.lastName}`);\r",
+									"        console.log(`   🏥 ${doc.specialization}`);\r",
+									"        console.log(`   📜 ${doc.licenseNumber} | 📋 ${doc.employeeCode}`);\r",
+									"        console.log(`   💰 €${doc.salary.toLocaleString()}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/doctors?page=0&size=10&sortBy=lastName",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"doctors"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "lastName"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.3 Get Doctor By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"👨‍⚕️ DOCTOR DETAILS\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Name: Dr.\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"📧 Email:\", jsonData.email);\r",
+									"    console.log(\"📞 Phone:\", jsonData.phoneNumber);\r",
+									"    console.log(\"🚨 Emergency:\", jsonData.emergencyContact);\r",
+									"    console.log(\"🎂 DOB:\", jsonData.dateOfBirth);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🏥 Specialization:\", jsonData.specialization);\r",
+									"    console.log(\"📜 License:\", jsonData.licenseNumber);\r",
+									"    console.log(\"🏢 Department:\", jsonData.department);\r",
+									"    console.log(\"📋 Employee Code:\", jsonData.employeeCode);\r",
+									"    console.log(\"💰 Salary: €\" + jsonData.salary.toLocaleString());\r",
+									"    console.log(\"📅 Hire Date:\", jsonData.hireDate);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📝 Biography:\");\r",
+									"    console.log(\"  \", jsonData.biography);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/doctors/{{doctorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"doctors",
+								"{{doctorId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.4 Update Doctor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Doctor updated successfully\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"✅ DOCTOR UPDATED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📞 Phone:\", jsonData.phoneNumber);\r",
+									"    console.log(\"🚨 Emergency:\", jsonData.emergencyContact);\r",
+									"    console.log(\"💰 New Salary: €\" + jsonData.salary.toLocaleString());\r",
+									"    console.log(\"📝 Biography updated\");\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstName\": \"{{tempDoctorFirstName}}\",\r\n  \"lastName\": \"{{tempDoctorLastName}}\",\r\n  \"phoneNumber\": \"+39 345 9999999\",\r\n  \"emergencyContact\": \"+39 345 8888888\",\r\n  \"salary\": 85000.00,\r\n  \"department\": \"{{tempDoctorDepartment}}\",\r\n  \"specialization\": \"{{tempDoctorSpecialization}}\",\r\n  \"biography\": \"{{tempDoctorBiography}} Recently completed advanced training and certification.\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/doctors/{{doctorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"doctors",
+								"{{doctorId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.5 Search Doctors by Specialization",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response is an array\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData).to.be.an('array');\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    var spec = pm.request.url.path[pm.request.url.path.length - 1];\r",
+									"    \r",
+									"    console.log(`🔍 SEARCH RESULTS: ${spec}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Found:\", jsonData.length, \"doctor(s)\");\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    if (jsonData.length > 0) {\r",
+									"        jsonData.forEach((doc, index) => {\r",
+									"            console.log(`${index + 1}. Dr. ${doc.firstName} ${doc.lastName}`);\r",
+									"            console.log(`   🏥 ${doc.specialization}`);\r",
+									"            console.log(`   📜 ${doc.licenseNumber}`);\r",
+									"            console.log(`   💰 €${doc.salary.toLocaleString()}`);\r",
+									"            console.log(`   📋 ${doc.employeeCode}`);\r",
+									"            console.log(\"   ──────────────────\");\r",
+									"        });\r",
+									"    } else {\r",
+									"        console.log(\"❌ No doctors found with this specialization\");\r",
+									"        console.log(\"💡 Try creating a doctor with this specialization first\");\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/doctors/specialization/Pediatrics",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"doctors",
+								"specialization",
+								"Pediatrics"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.6 Delete Doctor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Doctor deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Doctor deleted successfully!\");\r",
+									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"doctorId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/doctors/{{doctorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"doctors",
+								"{{doctorId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Doctor management endpoints - CRUD operations for medical staff.\n\nDoctors are employees with medical licenses and specializations.  \nThey can create appointments, medical records, and prescriptions.\n\nRole: DOCTOR  \nEmployee Type: Medical Staff"
+		},
+		{
+			"name": "3. STAFF",
+			"item": [
+				{
+					"name": "3.1 Register New Staff",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate random staff data\r",
+									"const firstName = pm.variables.replaceIn('{{$randomFirstName}}');\r",
+									"const lastName = pm.variables.replaceIn('{{$randomLastName}}');\r",
+									"const email = firstName.toLowerCase() + '.' + lastName.toLowerCase() + '@clinic.com';\r",
+									"\r",
+									"// Generate random Italian phone number\r",
+									"const phonePrefix = ['340', '347', '348', '349', '380'];\r",
+									"const randomPrefix = phonePrefix[Math.floor(Math.random() * phonePrefix.length)];\r",
+									"const phoneNumber = '+39 ' + randomPrefix + ' ' + Math.floor(1000000 + Math.random() * 9000000);\r",
+									"\r",
+									"// Emergency contact (different number)\r",
+									"const emergencyPrefix = phonePrefix[Math.floor(Math.random() * phonePrefix.length)];\r",
+									"const emergencyContact = '+39 ' + emergencyPrefix + ' ' + Math.floor(1000000 + Math.random() * 9000000);\r",
+									"\r",
+									"// Generate random date of birth (age between 22-60 for staff)\r",
+									"const currentYear = new Date().getFullYear();\r",
+									"const birthYear = currentYear - Math.floor(Math.random() * 38 + 22); // 22-60 years old\r",
+									"const birthMonth = String(Math.floor(Math.random() * 12 + 1)).padStart(2, '0');\r",
+									"const birthDay = String(Math.floor(Math.random() * 28 + 1)).padStart(2, '0');\r",
+									"const dateOfBirth = `${birthYear}-${birthMonth}-${birthDay}`;\r",
+									"\r",
+									"// Generate random hire date (between 2018-2024)\r",
+									"const hireYear = Math.floor(Math.random() * 7 + 2018); // 2018-2024\r",
+									"const hireMonth = String(Math.floor(Math.random() * 12 + 1)).padStart(2, '0');\r",
+									"const hireDay = String(Math.floor(Math.random() * 28 + 1)).padStart(2, '0');\r",
+									"const hireDate = `${hireYear}-${hireMonth}-${hireDay}`;\r",
+									"\r",
+									"// Calculate years of service\r",
+									"const yearsOfService = currentYear - hireYear;\r",
+									"\r",
+									"// Random salary (based on role and experience: 28k-50k)\r",
+									"const baseSalary = 28000;\r",
+									"const experienceBonus = yearsOfService * 1500;\r",
+									"const randomBonus = Math.floor(Math.random() * 5000);\r",
+									"const salary = baseSalary + experienceBonus + randomBonus;\r",
+									"\r",
+									"// Random staff roles with departments and responsibilities\r",
+									"const staffRoles = [\r",
+									"    { \r",
+									"        role: 'ADMIN', \r",
+									"        dept: 'Administration', \r",
+									"        resp: 'System administration, staff management, clinic operations oversight, policy implementation' \r",
+									"    },\r",
+									"    { \r",
+									"        role: 'RECEPTIONIST', \r",
+									"        dept: 'Reception', \r",
+									"        resp: 'Front desk operations, appointment scheduling, patient check-in/check-out, phone management' \r",
+									"    },\r",
+									"    { \r",
+									"        role: 'NURSE', \r",
+									"        dept: 'Nursing', \r",
+									"        resp: 'Patient care assistance, vital signs monitoring, medication administration, doctor support' \r",
+									"    }\r",
+									"];\r",
+									"\r",
+									"const randomRole = staffRoles[Math.floor(Math.random() * staffRoles.length)];\r",
+									"const staffRole = randomRole.role;\r",
+									"const department = randomRole.dept;\r",
+									"const responsibilities = randomRole.resp;\r",
+									"\r",
+									"// Employee status\r",
+									"const employeeStatus = 'ACTIVE';\r",
+									"\r",
+									"// Save to collection variables\r",
+									"pm.collectionVariables.set('tempStaffFirstName', firstName);\r",
+									"pm.collectionVariables.set('tempStaffLastName', lastName);\r",
+									"pm.collectionVariables.set('tempStaffEmail', email);\r",
+									"pm.collectionVariables.set('tempStaffPhone', phoneNumber);\r",
+									"pm.collectionVariables.set('tempStaffEmergency', emergencyContact);\r",
+									"pm.collectionVariables.set('tempStaffDOB', dateOfBirth);\r",
+									"pm.collectionVariables.set('tempStaffHireDate', hireDate);\r",
+									"pm.collectionVariables.set('tempStaffSalary', salary);\r",
+									"pm.collectionVariables.set('tempStaffEmployeeStatus', employeeStatus);\r",
+									"pm.collectionVariables.set('tempStaffDepartment', department);\r",
+									"pm.collectionVariables.set('tempStaffRole', staffRole);\r",
+									"pm.collectionVariables.set('tempStaffResponsibilities', responsibilities);\r",
+									"\r",
+									"console.log(\"🎲 Random Staff Data Generated:\");\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"👤\", firstName, lastName);\r",
+									"console.log(\"📧 Email:\", email);\r",
+									"console.log(\"📞 Phone:\", phoneNumber);\r",
+									"console.log(\"🚨 Emergency:\", emergencyContact);\r",
+									"console.log(\"🎂 DOB:\", dateOfBirth, `(Age: ${currentYear - birthYear})`);\r",
+									"console.log(\"📅 Hire Date:\", hireDate);\r",
+									"console.log(\"⏱️  Years of Service:\", yearsOfService);\r",
+									"console.log(\"💼 Status:\", employeeStatus);\r",
+									"console.log(\"👔 Staff Role:\", staffRole);\r",
+									"console.log(\"🏢 Department:\", department);\r",
+									"console.log(\"💰 Salary: €\" + salary.toLocaleString());\r",
+									"console.log(\"📋 Responsibilities:\");\r",
+									"console.log(\"   \", responsibilities);\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.collectionVariables.set(\"staffId\", jsonData.id);\r",
+									"    \r",
+									"    console.log(\"\");\r",
+									"    console.log(\"✅ STAFF MEMBER CREATED SUCCESSFULLY!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"👔 Role:\", jsonData.staffRole);\r",
+									"    console.log(\"🏢 Department:\", jsonData.department);\r",
+									"    console.log(\"📋 Employee Code:\", jsonData.employeeCode);\r",
+									"    console.log(\"💰 Salary: €\" + jsonData.salary.toLocaleString());\r",
+									"    console.log(\"📅 Hire Date:\", jsonData.hireDate);\r",
+									"    console.log(\"💾 ID saved to variable 'staffId'\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"\");\r",
+									"    console.log(\"🔑 Login credentials:\");\r",
+									"    console.log(\"   Email:\", jsonData.email);\r",
+									"    console.log(\"   Password: Password123!\");\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Staff created successfully\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has staff data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.staffRole).to.exist;\r",
+									"    pm.expect(jsonData.employeeCode).to.exist;\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Staff has employee fields\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.salary).to.be.greaterThan(0);\r",
+									"    pm.expect(jsonData.department).to.exist;\r",
+									"    pm.expect(jsonData.hireDate).to.exist;\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstName\": \"{{tempStaffFirstName}}\",\r\n  \"lastName\": \"{{tempStaffLastName}}\",\r\n  \"email\": \"{{tempStaffEmail}}\",\r\n  \"password\": \"Password123!\",\r\n  \"phoneNumber\": \"{{tempStaffPhone}}\",\r\n  \"dateOfBirth\": \"{{tempStaffDOB}}\",\r\n  \"emergencyContact\": \"{{tempStaffEmergency}}\",\r\n  \"hireDate\": \"{{tempStaffHireDate}}\",\r\n  \"salary\": {{tempStaffSalary}},\r\n  \"employeeStatus\": \"ACTIVE\",\r\n  \"department\": \"{{tempStaffDepartment}}\",\r\n  \"staffRole\": \"{{tempStaffRole}}\",\r\n  \"responsibilities\": \"{{tempStaffResponsibilities}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/staff",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"staff"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Get All Staff",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response is paginated\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.content).to.be.an('array');\r",
+									"    pm.expect(jsonData.totalElements).to.exist;\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"📋 STAFF LIST\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.totalElements, \"staff members\");\r",
+									"    console.log(\"📄 Page:\", jsonData.number + 1, \"of\", jsonData.totalPages);\r",
+									"    console.log(\"📦 Showing:\", jsonData.numberOfElements);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.content.forEach((staff, index) => {\r",
+									"        console.log(`${index + 1}. ${staff.firstName} ${staff.lastName}`);\r",
+									"        console.log(`   👔 ${staff.staffRole} | 🏢 ${staff.department}`);\r",
+									"        console.log(`   📋 ${staff.employeeCode}`);\r",
+									"        console.log(`   💰 €${staff.salary.toLocaleString()}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/staff?page=0&size=10&sortBy=lastName",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"staff"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "lastName"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.3 Get Staff By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"👤 STAFF MEMBER DETAILS\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Name:\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"📧 Email:\", jsonData.email);\r",
+									"    console.log(\"📞 Phone:\", jsonData.phoneNumber);\r",
+									"    console.log(\"🚨 Emergency:\", jsonData.emergencyContact);\r",
+									"    console.log(\"🎂 DOB:\", jsonData.dateOfBirth);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"👔 Staff Role:\", jsonData.staffRole);\r",
+									"    console.log(\"🏢 Department:\", jsonData.department);\r",
+									"    console.log(\"📋 Employee Code:\", jsonData.employeeCode);\r",
+									"    console.log(\"💰 Salary: €\" + jsonData.salary.toLocaleString());\r",
+									"    console.log(\"📅 Hire Date:\", jsonData.hireDate);\r",
+									"    console.log(\"💼 Status:\", jsonData.employeeStatus);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📋 Responsibilities:\");\r",
+									"    console.log(\"  \", jsonData.responsibilities);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/staff/{{staffId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"staff",
+								"{{staffId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.4 Update Staff",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Staff updated successfully\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"✅ STAFF MEMBER UPDATED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📞 Phone:\", jsonData.phoneNumber);\r",
+									"    console.log(\"🚨 Emergency:\", jsonData.emergencyContact);\r",
+									"    console.log(\"💰 New Salary: €\" + jsonData.salary.toLocaleString());\r",
+									"    console.log(\"📝 Responsibilities updated\");\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"firstName\": \"{{tempStaffFirstName}}\",\r\n  \"lastName\": \"{{tempStaffLastName}}\",\r\n  \"phoneNumber\": \"+39 340 9999999\",\r\n  \"emergencyContact\": \"+39 340 8888888\",\r\n  \"salary\": 38000.00,\r\n  \"department\": \"{{tempStaffDepartment}}\",\r\n  \"staffRole\": \"{{tempStaffRole}}\",\r\n  \"responsibilities\": \"{{tempStaffResponsibilities}}. Additional training completed in customer service excellence.\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/staff/{{staffId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"staff",
+								"{{staffId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.5 Search Staff By Role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response is an array\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData).to.be.an('array');\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    var role = pm.request.url.path[pm.request.url.path.length - 1];\r",
+									"    \r",
+									"    console.log(`🔍 SEARCH RESULTS: ${role}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Found:\", jsonData.length, \"staff member(s)\");\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    if (jsonData.length > 0) {\r",
+									"        jsonData.forEach((staff, index) => {\r",
+									"            console.log(`${index + 1}. ${staff.firstName} ${staff.lastName}`);\r",
+									"            console.log(`   🏢 ${staff.department}`);\r",
+									"            console.log(`   📋 ${staff.employeeCode}`);\r",
+									"            console.log(`   💰 €${staff.salary.toLocaleString()}`);\r",
+									"            console.log(\"   ──────────────────\");\r",
+									"        });\r",
+									"    } else {\r",
+									"        console.log(\"❌ No staff found with this role\");\r",
+									"        console.log(\"💡 Try creating staff with this role first\");\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/staff/role/RECEPTIONIST",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"staff",
+								"role",
+								"RECEPTIONIST"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.6 Delete Staff",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Staff deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Staff member deleted successfully!\");\r",
+									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"staffId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/staff/{{staffId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"staff",
+								"{{staffId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Staff management endpoints - CRUD operations for administrative personnel.\n\nStaff members are employees who handle administrative tasks,  \nreception, nursing, and other non-medical functions.\n\nRole: ADMIN (for staff members)  \nEmployee Type: Administrative/Support Staff\n\nAvailable Staff Roles:\n\n- ADMIN: Administrative management\n    \n- RECEPTIONIST: Front desk operations\n    \n- NURSE: Patient care assistance\n    \n- ACCOUNTANT: Financial management\n    \n- HR: Human resources",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "4. PATIENTS",
+			"item": [
+				{
+					"name": "4.1 Get All Patients",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response is paginated\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.content).to.be.an('array');\r",
+									"    pm.expect(jsonData.totalElements).to.exist;\r",
+									"});\r",
+									"\r",
+									"// Save first patient ID for subsequent requests\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    if (jsonData.content && jsonData.content.length > 0) {\r",
+									"        pm.collectionVariables.set(\"patientId\", jsonData.content[0].id);\r",
+									"        pm.collectionVariables.set(\"patientCode\", jsonData.content[0].patientCode);\r",
+									"    }\r",
+									"    \r",
+									"    console.log(\"📋 PATIENTS LIST\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.totalElements, \"patients\");\r",
+									"    console.log(\"📄 Page:\", jsonData.number + 1, \"of\", jsonData.totalPages);\r",
+									"    console.log(\"📦 Showing:\", jsonData.numberOfElements);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.content.forEach((patient, index) => {\r",
+									"        console.log(`${index + 1}. ${patient.firstName} ${patient.lastName}`);\r",
+									"        console.log(`   📋 ${patient.patientCode}`);\r",
+									"        console.log(`   📧 ${patient.email}`);\r",
+									"        console.log(`   🩸 ${patient.bloodType}`);\r",
+									"        if (patient.allergies) console.log(`   ⚠️  Allergies: ${patient.allergies}`);\r",
+									"        if (patient.chronicDiseases) console.log(`   ⚕️  Chronic: ${patient.chronicDiseases}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"    \r",
+									"    if (jsonData.content.length > 0) {\r",
+									"        console.log(\"\");\r",
+									"        console.log(\"💾 First patient ID saved to 'patientId'\");\r",
+									"        console.log(\"💾 First patient code saved to 'patientCode'\");\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients?page=0&size=10&sortBy=lastName",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"patients"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "lastName"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Get Patient By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"👤 PATIENT DETAILS\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"📋 Patient Code:\", jsonData.patientCode);\r",
+									"    console.log(\"👤 Name:\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"📧 Email:\", jsonData.email);\r",
+									"    console.log(\"📞 Phone:\", jsonData.phoneNumber);\r",
+									"    console.log(\"🎂 DOB:\", jsonData.dateOfBirth);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 Tax ID:\", jsonData.taxId);\r",
+									"    console.log(\"🏠 Address:\", jsonData.address);\r",
+									"    console.log(\"🌍 City:\", jsonData.city, `(${jsonData.province})`);\r",
+									"    console.log(\"📮 ZIP:\", jsonData.zipCode);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🩸 Blood Type:\", jsonData.bloodType);\r",
+									"    if (jsonData.allergies) {\r",
+									"        console.log(\"⚠️  Allergies:\", jsonData.allergies);\r",
+									"    } else {\r",
+									"        console.log(\"⚠️  Allergies: None\");\r",
+									"    }\r",
+									"    if (jsonData.chronicDiseases) {\r",
+									"        console.log(\"⚕️  Chronic Diseases:\", jsonData.chronicDiseases);\r",
+									"    } else {\r",
+									"        console.log(\"⚕️  Chronic Diseases: None\");\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"patients",
+								"{{patientId}}"
+							]
+						},
+						"description": "Retrieves a specific patient by UUID.  \n  \nUses the 'patientId' variable (from Get All Patients).  \n  \nAccess: PATIENT (own records), DOCTOR, ADMIN  \n  \nReturns complete patient profile with:  \n\\- Personal information  \n\\- Contact details  \n\\- Address  \n\\- Medical information  \n\\- Patient code"
+					},
+					"response": []
+				},
+				{
+					"name": "4.3 Get Patient By Code",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"👤 PATIENT FOUND BY CODE\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📋 Patient Code:\", jsonData.patientCode);\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Name:\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"📧 Email:\", jsonData.email);\r",
+									"    console.log(\"🩸 Blood Type:\", jsonData.bloodType);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/code/{{patientCode}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"patients",
+								"code",
+								"{{patientCode}}"
+							]
+						},
+						"description": "Retrieves a patient by their patient code (PAT-XXXX).\n\nUses the 'patientCode' variable (from Get All Patients).\n\nURL Pattern: /patients/code/{patientCode}\n\nExample codes:  \n\\- PAT-0001  \n\\- PAT-0002  \n\\- PAT-0123\n\nAccess: DOCTOR, ADMIN roles only\n\nUseful for:  \n\\- Quick patient lookup at reception  \n\\- Patient identification without UUID  \n\\- External system integration"
+					},
+					"response": []
+				},
+				{
+					"name": "4.4 Update Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Patient updated successfully\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"✅ PATIENT UPDATED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"👤\", jsonData.firstName, jsonData.lastName);\r",
+									"    console.log(\"📞 Phone:\", jsonData.phoneNumber);\r",
+									"    console.log(\"🏠 Address:\", jsonData.address);\r",
+									"    console.log(\"🌍 City:\", jsonData.city);\r",
+									"    console.log(\"🩸 Blood Type:\", jsonData.bloodType);\r",
+									"    if (jsonData.allergies) console.log(\"⚠️  Allergies:\", jsonData.allergies);\r",
+									"    if (jsonData.chronicDiseases) console.log(\"⚕️  Chronic:\", jsonData.chronicDiseases);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"phoneNumber\": \"+39 340 9999999\",\r\n  \"address\": \"Via Dante Alighieri 150\",\r\n  \"city\": \"Cagliari\",\r\n  \"province\": \"CA\",\r\n  \"zipCode\": \"09124\",\r\n  \"bloodType\": \"A_POSITIVE\",\r\n  \"allergies\": \"Penicillin, Pollen, Dust\",\r\n  \"chronicDiseases\": \"Hypertension\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"patients",
+								"{{patientId}}"
+							]
+						},
+						"description": "Updates patient information.\n\n⚠️ Access: ADMIN role only\n\nUpdatable fields:  \n✓ Phone number  \n✓ Address (address, city, province, zipCode)  \n✓ Blood type  \n✓ Allergies  \n✓ Chronic diseases\n\nNon-updatable fields:  \n✗ Name (firstName, lastName)  \n✗ Email  \n✗ Date of birth  \n✗ Tax ID  \n✗ Patient code\n\nUse this to:  \n\\- Update contact information  \n\\- Add/modify medical information  \n\\- Update address after patient moves"
+					},
+					"response": []
+				},
+				{
+					"name": "4.5 Delete Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Patient deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Patient deleted successfully!\");\r",
+									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"patientId\"));\r",
+									"    console.log(\"\");\r",
+									"    console.log(\"⚠️  This will cascade delete:\");\r",
+									"    console.log(\"   - All appointments\");\r",
+									"    console.log(\"   - All medical records\");\r",
+									"    console.log(\"   - All prescriptions\");\r",
+									"    console.log(\"   - All invoices\");\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"patients",
+								"{{patientId}}"
+							]
+						},
+						"description": "Deletes a patient from the system.\n\nWARNING: This is a DESTRUCTIVE operation!  \nAccess: ADMIN role only\n\nThis will CASCADE DELETE:\n\n- All patient appointments\n    \n- All medical records\n    \n- All prescriptions\n    \n- All invoices\n    \n- All related data\n    \n\nResponse: 204 No Content (success)\n\nUse with caution!  \nThis action cannot be undone.\n\nConsider deactivating patients instead of deleting if you need to preserve historical data."
+					},
+					"response": []
+				}
+			],
+			"description": "StartFragmentPatient management endpoints - Retrieve, update, and delete patient records.  \n  \n⚠️ NOTE: Patient CREATION is in \"1. Authentication → Register New Patient\"  \n  \nPatients can be accessed by:  \n\\- ID (UUID)  \n\\- Patient Code (PAT-XXXX)  \n  \nRole: PATIENT  \nAccess: Doctors and Admins can view all patients  \nPatients can view their own recordsEndFragment"
+		},
+		{
+			"name": "5. APPOINTMENTS",
+			"item": [
+				{
+					"name": "5.1 Register New Appointment (Future date)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate future appointment date (random day 3-7 days from now)",
+									"const futureDate = new Date();",
+									"const daysAhead = Math.floor(Math.random() * 5) + 3; // Random 3-7 days ahead",
+									"futureDate.setDate(futureDate.getDate() + daysAhead);",
+									"",
+									"// Random appointment hours (business hours: 9, 10, 11, 14, 15, 16)",
+									"const availableHours = [9, 10, 11, 14, 15, 16];",
+									"const randomHour = availableHours[Math.floor(Math.random() * availableHours.length)];",
+									"",
+									"// Random minutes (0, 15, 30, 45)",
+									"const availableMinutes = [0, 15, 30, 45];",
+									"const randomMinutes = availableMinutes[Math.floor(Math.random() * availableMinutes.length)];",
+									"",
+									"futureDate.setHours(randomHour, randomMinutes, 0, 0);",
+									"const appointmentDateTime = futureDate.toISOString().slice(0, 19);",
+									"",
+									"// Random duration (30, 45, or 60 minutes)",
+									"const durations = [30, 45, 60];",
+									"const durationMinutes = durations[Math.floor(Math.random() * durations.length)];",
+									"",
+									"// Random reasons",
+									"const reasons = [",
+									"    'Annual checkup',",
+									"    'Follow-up consultation',",
+									"    'Medical examination',",
+									"    'Routine health screening',",
+									"    'Vaccination',",
+									"    'Lab results review',",
+									"    'Symptom consultation',",
+									"    'Prescription renewal'",
+									"];",
+									"const reason = reasons[Math.floor(Math.random() * reasons.length)];",
+									"",
+									"// Random notes",
+									"const notes = [",
+									"    'Patient requested morning appointment',",
+									"    'Patient prefers early time slot',",
+									"    'First visit - needs complete examination',",
+									"    'Follow-up from previous visit',",
+									"    'Patient has limited availability',",
+									"    'Urgent appointment requested'",
+									"];",
+									"const appointmentNotes = notes[Math.floor(Math.random() * notes.length)];",
+									"",
+									"pm.collectionVariables.set('tempAppointmentDateTime', appointmentDateTime);",
+									"pm.collectionVariables.set('tempAppointmentDuration', durationMinutes);",
+									"pm.collectionVariables.set('tempAppointmentReason', reason);",
+									"pm.collectionVariables.set('tempAppointmentNotes', appointmentNotes);",
+									"",
+									"console.log(\"🎲 Random Appointment Data Generated:\");",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"console.log(\"📅 Date & Time:\", appointmentDateTime);",
+									"console.log(\"   📆 Days ahead:\", daysAhead);",
+									"console.log(\"   🕐 Time slot:\", randomHour + \":\" + (randomMinutes < 10 ? \"0\" : \"\") + randomMinutes);",
+									"console.log(\"⏱️  Duration:\", durationMinutes, \"minutes\");",
+									"console.log(\"📋 Reason:\", reason);",
+									"console.log(\"📝 Notes:\", appointmentNotes);",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"console.log(\"⚠️  Using patientId:\", pm.collectionVariables.get(\"patientId\"));",
+									"console.log(\"⚠️  Using doctorId:\", pm.collectionVariables.get(\"doctorId\"));"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.collectionVariables.set(\"appointmentId\", jsonData.id);\r",
+									"    \r",
+									"    console.log(\"\");\r",
+									"    console.log(\"✅ APPOINTMENT CREATED WITH WEATHER DATA!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"👨‍⚕️ Doctor:\", jsonData.doctorName);\r",
+									"    console.log(\"📅 Date & Time:\", jsonData.appointmentDateTime);\r",
+									"    console.log(\"⏱️  Duration:\", jsonData.durationMinutes, \"minutes\");\r",
+									"    console.log(\"📊 Status:\", jsonData.status);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🌤️  WEATHER FORECAST:\");\r",
+									"    console.log(\"   Conditions:\", jsonData.weatherConditions || \"N/A\");\r",
+									"    console.log(\"   Temperature:\", jsonData.temperature ? jsonData.temperature + \"°C\" : \"N/A\");\r",
+									"    if (jsonData.weatherAlert) {\r",
+									"        console.log(\"   ⚠️  ALERT:\", jsonData.weatherAlert);\r",
+									"    } else {\r",
+									"        console.log(\"   ✅ No weather alerts\");\r",
+									"    }\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💾 ID saved to 'appointmentId'\");\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Appointment created successfully\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has appointment data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.patientName).to.exist;\r",
+									"    pm.expect(jsonData.doctorName).to.exist;\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Weather data populated\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.weatherConditions).to.exist;\r",
+									"    pm.expect(jsonData.temperature).to.exist;\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"patientId\": \"{{patientId}}\",\r\n  \"doctorId\": \"{{doctorId}}\",\r\n  \"appointmentDateTime\": \"{{tempAppointmentDateTime}}\",\r\n  \"durationMinutes\": {{tempAppointmentDuration}},\r\n  \"reason\": \"{{tempAppointmentReason}}\",\r\n  \"notes\": \"{{tempAppointmentNotes}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/appointments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments"
+							]
+						},
+						"description": "Creates a new appointment with automatic weather forecast.  \n  \nWEATHER INTEGRATION:  \nThe system automatically fetches weather data from OpenWeather API  \nfor the appointment date and location (Cagliari, Sardinia).  \n  \nIncludes:  \n\\- Weather conditions (clear, cloudy, rain, etc.)  \n\\- Temperature in Celsius  \n\\- Weather alerts (if extreme conditions expected)  \n  \n⚠️ REQUIREMENTS:  \n\\- patientId must exist (from Folder 1 or 4)  \n\\- doctorId must exist (from Folder 2)  \n  \nRandomized Fields:\n\n- Appointment date (3 days from now)\n    \n- Duration (30/45/60 minutes)\n    \n- Reason for visit\n    \n- Appointment notes\n    \n\nDefault Status: SCHEDULED  \n  \nAccess: PATIENT (own appointments), ADMIN  \n  \nUse Case:\n\n- Patient books appointment → System fetches weather →\n    \n- If bad weather expected → Alert shown →\n    \n- Patient/clinic can plan accordinglyEndFragment"
+					},
+					"response": []
+				},
+				{
+					"name": "5.2 Get All Appointments",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    console.log(\"📋 APPOINTMENTS LIST\");",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"    console.log(\"📊 Total:\", jsonData.totalElements);",
+									"    console.log(\"📄 Page:\", jsonData.number + 1, \"of\", jsonData.totalPages);",
+									"    console.log(\"\");",
+									"    ",
+									"    jsonData.content.forEach((apt, index) => {",
+									"        console.log(`${index + 1}. ${apt.patientName} → Dr. ${apt.doctorName}`);",
+									"        console.log(`   📅 ${apt.appointmentDateTime}`);",
+									"        console.log(`   📊 ${apt.status} | ⏱️  ${apt.durationMinutes} min`);",
+									"        console.log(`   📋 ${apt.reason}`);",
+									"        if (apt.weatherConditions) {",
+									"            console.log(`   🌤️  ${apt.weatherConditions}, ${apt.temperature}°C`);",
+									"        }",
+									"        console.log(\"   ──────────────────\");",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/appointments?page=0&size=10&sortBy=appointmentDateTime",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "appointmentDateTime"
+								}
+							]
+						},
+						"description": "Retrieves all appointments using pagination.\n\n**Access control**  \nThis endpoint is accessible only to users with DOCTOR or ADMIN roles.\n\n**Sorting**  \nResults are ordered by `appointmentDateTime` in ascending order.\n\n**Response content**\n\n- Each appointment in the response includes the patient’s name and the doctor’s name.\n    \n- Date, time and duration of the appointment.\n    \n- Current appointment status.\n    \n- Reason for the visit.\n    \n- Weather data associated with the appointment date and location, if available.\n    \n\n**Notes**  \nPagination parameters must be provided to control page size and navigation through the result set."
+					},
+					"response": []
+				},
+				{
+					"name": "5.3 Get Appointment By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"📅 APPOINTMENT DETAILS\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"👨‍⚕️ Doctor:\", jsonData.doctorName);\r",
+									"    console.log(\"📅 Date & Time:\", jsonData.appointmentDateTime);\r",
+									"    console.log(\"⏱️  Duration:\", jsonData.durationMinutes, \"minutes\");\r",
+									"    console.log(\"📊 Status:\", jsonData.status);\r",
+									"    console.log(\"📋 Reason:\", jsonData.reason);\r",
+									"    console.log(\"📝 Notes:\", jsonData.notes || \"None\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🌤️  WEATHER DATA:\");\r",
+									"    console.log(\"   Conditions:\", jsonData.weatherConditions || \"N/A\");\r",
+									"    console.log(\"   Temperature:\", jsonData.temperature ? jsonData.temperature + \"°C\" : \"N/A\");\r",
+									"    if (jsonData.weatherAlert) {\r",
+									"        console.log(\"   ⚠️  ALERT:\", jsonData.weatherAlert);\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointmentId}}"
+							]
+						},
+						"description": "Retrieves a specific appointment by ID.\n\nAccess: PATIENT (own), DOCTOR, ADMIN\n\nIncludes complete appointment details with weather data."
+					},
+					"response": []
+				},
+				{
+					"name": "5.4 Get Appointments By Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(`📋 APPOINTMENTS FOR PATIENT: ${pm.collectionVariables.get(\"patientId\")}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((apt, index) => {\r",
+									"        console.log(`${index + 1}. Dr. ${apt.doctorName}`);\r",
+									"        console.log(`   📅 ${apt.appointmentDateTime}`);\r",
+									"        console.log(`   📊 ${apt.status}`);\r",
+									"        console.log(`   📋 ${apt.reason}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/appointments/patient/{{patientId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments",
+								"patient",
+								"{{patientId}}"
+							]
+						},
+						"description": "Retrieves all appointments for a specific patient.\n\nURL Pattern: /appointments/patient/{patientId}\n\nAccess: PATIENT (own), DOCTOR, ADMIN\n\nResponse: Array of appointments (not paginated)\n\nUseful for:\n\n- Patient appointment history\n    \n- Upcoming appointments for a patient\n    \n- Patient dashboard"
+					},
+					"response": []
+				},
+				{
+					"name": "5.5 Get Appointments By Doctor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(`📋 APPOINTMENTS FOR DOCTOR: ${pm.collectionVariables.get(\"doctorId\")}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((apt, index) => {\r",
+									"        console.log(`${index + 1}. ${apt.patientName}`);\r",
+									"        console.log(`   📅 ${apt.appointmentDateTime}`);\r",
+									"        console.log(`   📊 ${apt.status}`);\r",
+									"        console.log(`   📋 ${apt.reason}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/appointments/doctor/{{doctorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments",
+								"doctor",
+								"{{doctorId}}"
+							]
+						},
+						"description": "Retrieves all appointments for a specific doctor.\n\nURL Pattern: /appointments/doctor/{doctorId}\n\nAccess: DOCTOR, ADMIN\n\nUseful for:\n- Doctor's schedule\n- Doctor's workload\n- Patient list for the day"
+					},
+					"response": []
+				},
+				{
+					"name": "5.6 Get Appointments By Status (Scheduled)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    var status = pm.request.url.path[pm.request.url.path.length - 1];\r",
+									"    \r",
+									"    console.log(`📋 APPOINTMENTS WITH STATUS: ${status}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Found:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((apt, index) => {\r",
+									"        console.log(`${index + 1}. ${apt.patientName} → Dr. ${apt.doctorName}`);\r",
+									"        console.log(`   📅 ${apt.appointmentDateTime}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"   "
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/appointments/status/SCHEDULED",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments",
+								"status",
+								"SCHEDULED"
+							]
+						},
+						"description": "Retrieves appointments filtered by status.\n\n**Endpoint**  \n`/appointments/status/{status}`\n\n**Description**  \nThis endpoint returns all appointments matching the specified status.\n\n**Available statuses**  \nSCHEDULED – Appointment just booked  \nCONFIRMED – Appointment confirmed by the patient  \nCOMPLETED – Visit successfully finished  \nCANCELLED – Appointment cancelled\n\n**Usage**  \nTo retrieve appointments with a specific status, replace `{status}` in the URL with one of the supported values.\n\nExamples  \n`/appointments/status/SCHEDULED`  \n`/appointments/status/CONFIRMED`  \n`/appointments/status/COMPLETED`  \n`/appointments/status/CANCELLED`\n\n**Important**  \nThe `status` path parameter is case-sensitive and must be provided in UPPERCASE.\n\n**Access control**  \nThis endpoint is accessible only to users with DOCTOR or ADMIN roles."
+					},
+					"response": []
+				},
+				{
+					"name": "5.7 Get Appointments By Date Range",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"📅 APPOINTMENTS IN DATE RANGE\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Found:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((apt, index) => {\r",
+									"        console.log(`${index + 1}. ${apt.appointmentDateTime}`);\r",
+									"        console.log(`   ${apt.patientName} → Dr. ${apt.doctorName}`);\r",
+									"        console.log(`   📊 ${apt.status}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/appointments/date-range?start=2025-12-26T00:00:00&end=2025-12-31T23:59:59",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments",
+								"date-range"
+							],
+							"query": [
+								{
+									"key": "start",
+									"value": "2025-12-26T00:00:00"
+								},
+								{
+									"key": "end",
+									"value": "2025-12-31T23:59:59"
+								}
+							]
+						},
+						"description": "Retrieves appointments within a date range.\n\nQuery Parameters:\n- start: Start datetime (ISO 8601 format)\n- end: End datetime (ISO 8601 format)\n\nFormat: YYYY-MM-DDTHH:mm:ss\n\nExamples:\n?start=2025-12-26T00:00:00&end=2025-12-31T23:59:59\n?start=2025-12-01T00:00:00&end=2025-12-31T23:59:59\n\nUseful for:\n- Weekly/monthly schedules\n- Calendar views\n- Report generation\n- Workload analysis\n\nAccess: DOCTOR, ADMIN"
+					},
+					"response": []
+				},
+				{
+					"name": "5.8 Update Appointment",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate new future date (5 days from now, 3:00 PM)\r",
+									"const newDate = new Date();\r",
+									"newDate.setDate(newDate.getDate() + 5);\r",
+									"newDate.setHours(15, 0, 0, 0);\r",
+									"const newDateTime = newDate.toISOString().slice(0, 19);\r",
+									"\r",
+									"pm.collectionVariables.set('tempNewAppointmentDateTime', newDateTime);\r",
+									"\r",
+									"console.log(\"📅 Rescheduling to:\", newDateTime);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Appointment updated successfully\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"✅ APPOINTMENT UPDATED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📅 New Date:\", jsonData.appointmentDateTime);\r",
+									"    console.log(\"⏱️  Duration:\", jsonData.durationMinutes, \"min\");\r",
+									"    console.log(\"📊 Status:\", jsonData.status);\r",
+									"    console.log(\"🌤️  Weather updated:\", jsonData.weatherConditions || \"N/A\");\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"appointmentDateTime\": \"{{tempNewAppointmentDateTime}}\",\r\n  \"durationMinutes\": 60,\r\n  \"status\": \"COMPLETED\",\r\n  \"reason\": \"Annual checkup - Extended\",\r\n  \"notes\": \"Rescheduled to accommodate patient availability. Patient confirmed attendance.\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointmentId}}"
+							]
+						},
+						"description": "Updates appointment details.\n\n**Access control**  \nThis endpoint is accessible only to users with DOCTOR or ADMIN roles.\n\n**Updatable fields**\n\n- Date and time, for rescheduling the appointment\n    \n- Duration\n    \n- Status\n    \n- Reason for the visit\n    \n- Internal notes\n    \n\n**Automatic behavior**\n\n- When the appointment is rescheduled to a different date, weather data associated with the appointment is automatically updated\n    \n\n**Common use cases**\n\n- Rescheduling an existing appointment\n    \n- Changing the appointment status, for example from SCHEDULED to CONFIRMED\n    \n- Updating the appointment duration\n    \n- Marking the appointment as COMPLETED after the visit\n    \n- Cancelling the appointment by setting the status to CANCELLED"
+					},
+					"response": []
+				},
+				{
+					"name": "5.9 Delete Appointment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Appointment deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Appointment deleted!\");\r",
+									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"appointmentId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointmentId}}"
+							]
+						},
+						"description": "Deletes an appointment.\n\n**Warning**\n\n- Destructive operation. This action permanently removes data.\n    \n\n**Access control**\n\n- ADMIN role only\n    \n\n**Cascade deletion**  \nThis operation will also delete all data associated with the appointment:\n\n- Medical records\n    \n- Prescriptions\n    \n- Invoices\n    \n\n**Response**\n\n- HTTP 204 No Content\n    \n\n**Important note**\n\n- For audit and traceability purposes, consider updating the appointment status to CANCELLED instead of deleting the appointment."
+					},
+					"response": []
+				}
+			],
+			"description": "Appointment management endpoints - Schedule and manage patient appointments.\n\nFEATURES:\n\n- Automatic weather data integration (OpenWeather API)\n    \n- Weather alerts for appointment dates\n    \n- Multiple status tracking (SCHEDULED, CONFIRMED, COMPLETED, CANCELLED)\n    \n- Search by patient, doctor, status, date range\n    \n\nWEATHER INTEGRATION:  \nEach appointment automatically fetches weather forecast for the appointment date.  \nIncludes temperature, conditions, and weather alerts.\n\nAvailable Statuses:  \n📅 SCHEDULED - Initial booking  \n✅ CONFIRMED - Patient confirmed  \n✔️ COMPLETED - Visit completed  \n❌ CANCELLED - Appointment cancelled\n\nAccess:\n\n- Patients can book their own appointments\n    \n- Doctors/Admins can manage all appointments"
+		},
+		{
+			"name": "6. MEDICAL RECORDS",
+			"item": [
+				{
+					"name": "6.1 Register New Medical Record",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate current datetime for record\r",
+									"const now = new Date();\r",
+									"const recordDate = now.toISOString().slice(0, 19);\r",
+									"\r",
+									"// Random diagnoses with ICD codes\r",
+									"const diagnoses = [\r",
+									"    { diag: 'Seasonal allergic rhinitis with mild symptoms', symp: 'Runny nose, sneezing, itchy eyes', treat: 'Antihistamine prescribed, avoid outdoor activities during high pollen days', icd: 'J30.1' },\r",
+									"    { diag: 'Acute upper respiratory infection', symp: 'Cough, sore throat, mild fever, nasal congestion', treat: 'Rest, fluids, symptomatic treatment with paracetamol if needed', icd: 'J06.9' },\r",
+									"    { diag: 'Essential hypertension', symp: 'Elevated blood pressure readings, occasional headaches', treat: 'Lifestyle modifications, blood pressure monitoring, medication prescribed', icd: 'I10' },\r",
+									"    { diag: 'Type 2 diabetes mellitus without complications', symp: 'Elevated blood glucose, increased thirst', treat: 'Dietary changes, exercise routine, oral hypoglycemic medication', icd: 'E11.9' },\r",
+									"    { diag: 'Acute bronchitis', symp: 'Persistent cough, chest discomfort, mild dyspnea', treat: 'Bronchodilator inhaler, rest, increase fluid intake', icd: 'J20.9' },\r",
+									"    { diag: 'Migraine without aura', symp: 'Severe unilateral headache, photophobia, nausea', treat: 'Prescribed migraine medication, rest in dark room, identify triggers', icd: 'G43.0' },\r",
+									"    { diag: 'Acute gastroenteritis', symp: 'Nausea, vomiting, diarrhea, abdominal cramps', treat: 'Oral rehydration, bland diet, antiemetic if needed', icd: 'K52.9' },\r",
+									"    { diag: 'Anxiety disorder', symp: 'Excessive worry, restlessness, difficulty concentrating', treat: 'Cognitive behavioral therapy recommended, relaxation techniques', icd: 'F41.9' }\r",
+									"];\r",
+									"\r",
+									"const randomDiag = diagnoses[Math.floor(Math.random() * diagnoses.length)];\r",
+									"\r",
+									"pm.collectionVariables.set('tempRecordDate', recordDate);\r",
+									"pm.collectionVariables.set('tempDiagnosis', randomDiag.diag);\r",
+									"pm.collectionVariables.set('tempSymptoms', randomDiag.symp);\r",
+									"pm.collectionVariables.set('tempTreatment', randomDiag.treat);\r",
+									"pm.collectionVariables.set('tempIcdCode', randomDiag.icd);\r",
+									"\r",
+									"console.log(\"🎲 Random Medical Record Data Generated:\");\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"📅 Record Date:\", recordDate);\r",
+									"console.log(\"🏥 Diagnosis:\", randomDiag.diag);\r",
+									"console.log(\"🩺 ICD Code:\", randomDiag.icd);\r",
+									"console.log(\"📋 Symptoms:\", randomDiag.symp);\r",
+									"console.log(\"💊 Treatment:\", randomDiag.treat);\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"⚠️  Using patientId:\", pm.collectionVariables.get(\"patientId\"));\r",
+									"console.log(\"⚠️  Using doctorId:\", pm.collectionVariables.get(\"doctorId\"));\r",
+									"console.log(\"⚠️  Using appointmentId:\", pm.collectionVariables.get(\"appointmentId\"));"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.collectionVariables.set(\"medicalRecordId\", jsonData.id);\r",
+									"    \r",
+									"    console.log(\"\");\r",
+									"    console.log(\"✅ MEDICAL RECORD CREATED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"👨‍⚕️ Doctor:\", jsonData.doctorName);\r",
+									"    console.log(\"📅 Record Date:\", jsonData.recordDate);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🏥 Diagnosis:\", jsonData.diagnosis);\r",
+									"    console.log(\"🩺 ICD Code:\", jsonData.icdCode);\r",
+									"    console.log(\"📋 Symptoms:\", jsonData.symptoms);\r",
+									"    console.log(\"💊 Treatment:\", jsonData.treatment);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💾 ID saved to 'medicalRecordId'\");\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Medical record created successfully\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has medical record data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.diagnosis).to.exist;\r",
+									"    pm.expect(jsonData.icdCode).to.exist;\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"patientId\": \"{{patientId}}\",\r\n  \"doctorId\": \"{{doctorId}}\",\r\n  \"appointmentId\": \"{{appointmentId}}\",\r\n  \"recordDate\": \"{{tempRecordDate}}\",\r\n  \"diagnosis\": \"{{tempDiagnosis}}\",\r\n  \"symptoms\": \"{{tempSymptoms}}\",\r\n  \"treatment\": \"{{tempTreatment}}\",\r\n  \"icdCode\": \"{{tempIcdCode}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/medical-records",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records"
+							]
+						},
+						"description": "Creates a medical record for a completed appointment.\n\n**Description**  \nThis request creates a medical record associated with an appointment that has already been completed. The data generated is realistic and intended for testing and validation purposes.\n\n**Randomized data**\n\n- One of 8 possible diagnoses, each identified by an ICD code\n    \n- Realistic symptoms related to the selected condition\n    \n- Appropriate treatments based on the diagnosis\n    \n- Current date and time\n    \n\n**Medical conditions included**\n\n- Seasonal allergic rhinitis (J30.1)\n    \n- Upper respiratory infection (J06.9)\n    \n- Essential hypertension (I10)\n    \n- Type 2 diabetes (E11.9)\n    \n- Acute bronchitis (J20.9)\n    \n- Migraine (G43.0)\n    \n- Acute gastroenteritis (K52.9)\n    \n- Anxiety disorder (F41.9)\n    \n\n**Requirements**\n\n- `patientId` retrieved from Folder 4\n    \n- `doctorId` retrieved from Folder 2\n    \n- `appointmentId` retrieved from Folder 5, with status COMPLETED\n    \n\n**Access control**\n\n- DOCTOR\n    \n- ADMIN\n    \n\n**Validation note**\n\n- The appointment is automatically validated to ensure it is completed and correctly associated with the specified patient and doctor"
+					},
+					"response": []
+				},
+				{
+					"name": "6.2 Get All Medical Records",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"📋 MEDICAL RECORDS LIST\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.totalElements);\r",
+									"    console.log(\"📄 Page:\", jsonData.number + 1, \"of\", jsonData.totalPages);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.content.forEach((record, index) => {\r",
+									"        console.log(`${index + 1}. ${record.patientName} - Dr. ${record.doctorName}`);\r",
+									"        console.log(`   📅 ${record.recordDate}`);\r",
+									"        console.log(`   🏥 ${record.diagnosis}`);\r",
+									"        console.log(`   🩺 ICD: ${record.icdCode}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/medical-records?page=0&size=10&sortBy=recordDate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "recordDate"
+								}
+							]
+						},
+						"description": "Retrieves all medical records with pagination.\n\nAccess: DOCTOR, ADMIN\n\nSorted by: recordDate (descending - most recent first)\n\nResponse includes:  \n\\- Patient and doctor names  \n\\- Diagnosis and ICD code  \n\\- Record date  \n\\- Symptoms and treatmentEndFragment"
+					},
+					"response": []
+				},
+				{
+					"name": "6.3 Get Medical Record By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"📋 MEDICAL RECORD DETAILS\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"👨‍⚕️ Doctor:\", jsonData.doctorName);\r",
+									"    console.log(\"📅 Record Date:\", jsonData.recordDate);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🏥 DIAGNOSIS:\", jsonData.diagnosis);\r",
+									"    console.log(\"🩺 ICD Code:\", jsonData.icdCode);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📋 SYMPTOMS:\");\r",
+									"    console.log(\"  \", jsonData.symptoms);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💊 TREATMENT:\");\r",
+									"    console.log(\"  \", jsonData.treatment);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/medical-records/{{medicalRecordId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records",
+								"{{medicalRecordId}}"
+							]
+						},
+						"description": "Retrieves a specific medical record by ID.  \n  \nAccess: PATIENT (own records), DOCTOR, ADMIN  \n  \nReturns complete medical documentation including:  \n\\- Full diagnosis  \n\\- Detailed symptoms  \n\\- Complete treatment plan  \n\\- ICD-10 code  \n\\- Patient and doctor information  \n\\- Associated appointment"
+					},
+					"response": []
+				},
+				{
+					"name": "6.4 Get Medical Records By Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(`📋 MEDICAL HISTORY FOR PATIENT: ${pm.collectionVariables.get(\"patientId\")}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total Records:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((record, index) => {\r",
+									"        console.log(`${index + 1}. ${record.recordDate}`);\r",
+									"        console.log(`   👨‍⚕️ Dr. ${record.doctorName}`);\r",
+									"        console.log(`   🏥 ${record.diagnosis}`);\r",
+									"        console.log(`   🩺 ICD: ${record.icdCode}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/medical-records/patient/{{patientId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records",
+								"patient",
+								"{{patientId}}"
+							]
+						},
+						"description": "Retrieves all medical records for a specific patient.\n\nURL Pattern: /medical-records/patient/{patientId}\n\nAccess: PATIENT (own records), DOCTOR, ADMIN\n\nResponse: Array of records (not paginated)\nSorted by: recordDate (descending)\n\nUseful for:\n- Patient medical history\n- Treatment continuity\n- Diagnosis tracking\n- Patient dashboard"
+					},
+					"response": []
+				},
+				{
+					"name": "6.5 Get Medical Records by Doctor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(`📋 RECORDS CREATED BY DOCTOR: ${pm.collectionVariables.get(\"doctorId\")}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total Records:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((record, index) => {\r",
+									"        console.log(`${index + 1}. ${record.patientName}`);\r",
+									"        console.log(`   📅 ${record.recordDate}`);\r",
+									"        console.log(`   🏥 ${record.diagnosis}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/medical-records/doctor/{{doctorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records",
+								"doctor",
+								"{{doctorId}}"
+							]
+						},
+						"description": "Retrieves all medical records created by a specific doctor.\n\nURL Pattern: /medical-records/doctor/{doctorId}\n\nAccess: DOCTOR, ADMIN\n\nUseful for:\n- Doctor's patient list\n- Performance metrics\n- Workload analysis\n- Quality review"
+					},
+					"response": []
+				},
+				{
+					"name": "6.6 Get Medical Records by Date Range",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"📅 MEDICAL RECORDS IN DATE RANGE\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Found:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((record, index) => {\r",
+									"        console.log(`${index + 1}. ${record.recordDate}`);\r",
+									"        console.log(`   ${record.patientName} - Dr. ${record.doctorName}`);\r",
+									"        console.log(`   🏥 ${record.diagnosis}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/medical-records/date-range?start=2025-12-01T00:00:00&end=2025-12-31T23:59:59",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records",
+								"date-range"
+							],
+							"query": [
+								{
+									"key": "start",
+									"value": "2025-12-01T00:00:00"
+								},
+								{
+									"key": "end",
+									"value": "2025-12-31T23:59:59"
+								}
+							]
+						},
+						"description": "Retrieves medical records within a date range.\n\nQuery Parameters:\n- start: Start datetime (ISO 8601)\n- end: End datetime (ISO 8601)\n\nFormat: YYYY-MM-DDTHH:mm:ss\n\nExamples:\n?start=2025-12-01T00:00:00&end=2025-12-31T23:59:59\n?start=2025-01-01T00:00:00&end=2025-12-31T23:59:59\n\nUseful for:\n- Monthly reports\n- Statistical analysis\n- Audit trails\n- Billing periods\n\nAccess: DOCTOR, ADMIN"
+					},
+					"response": []
+				},
+				{
+					"name": "6.7 Update Medical Record",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Medical record updated successfully\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"✅ MEDICAL RECORD UPDATED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🏥 Diagnosis:\", jsonData.diagnosis);\r",
+									"    console.log(\"💊 Treatment:\", jsonData.treatment);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"recordDate\": \"{{tempRecordDate}}\",\r\n  \"diagnosis\": \"{{tempDiagnosis}} - Updated after follow-up review\",\r\n  \"symptoms\": \"{{tempSymptoms}} - Symptoms improving with treatment\",\r\n  \"treatment\": \"{{tempTreatment}} Continue current medication. Follow-up in 2 weeks recommended.\",\r\n  \"icdCode\": \"{{tempIcdCode}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/medical-records/{{medicalRecordId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records",
+								"{{medicalRecordId}}"
+							]
+						},
+						"description": "Updates medical record information.\n\nAccess: DOCTOR, ADMIN\n\nUpdatable fields:\n✓ Record date\n✓ Diagnosis\n✓ Symptoms\n✓ Treatment\n✓ ICD code\n\nUse cases:\n- Add follow-up information\n- Correct diagnosis\n- Update treatment plan\n- Add additional notes"
+					},
+					"response": []
+				},
+				{
+					"name": "6.8 Delete Medical Record",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Medical record deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Medical record deleted!\");\r",
+									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"medicalRecordId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/medical-records/{{medicalRecordId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records",
+								"{{medicalRecordId}}"
+							]
+						},
+						"description": "Deletes a medical record.\n\n**Warning**\n\n- Destructive operation. This action permanently removes data.\n    \n\n**Access control**\n\n- ADMIN role only\n    \n\n**Cascade deletion**  \nThis operation will also delete all data associated with the medical record:\n\n- Prescriptions\n    \n\n**Response**\n\n- HTTP 204 No Content\n    \n\n**Important note**\n\n- Deleting medical records may violate legal requirements for medical record retention.\n    \n- Consider archiving the record instead of deleting it to ensure compliance and traceability."
+					},
+					"response": []
+				}
+			],
+			"description": "Medical Records management - Clinical documentation for completed appointments.\n\nMEDICAL RECORDS:\n\n- Documentation created by doctors after patient visits.\n    \n- Includes diagnosis, symptoms, treatment, and ICD codes.\n    \n\n⚠️ REQUIREMENTS:\n\n- Appointment must be COMPLETED status\n    \n- Only doctors can create/update records\n    \n- Linked to specific appointment\n    \n\nCONTAINS:\n\n- Patient information\n    \n- Doctor who created the record\n    \n- Appointment details\n    \n- Diagnosis and ICD code\n    \n- Symptoms reported\n    \n- Treatment prescribed\n    \n- Record date/time\n    \n\nAccess: Doctors create/update, Patients can view their own"
+		},
+		{
+			"name": "7. PRESCRIPTIONS",
+			"item": [
+				{
+					"name": "7.1 Register New Prescription - Random Drug",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate start date (today)\r",
+									"const today = new Date();\r",
+									"const startDate = today.toISOString().slice(0, 10);\r",
+									"\r",
+									"// Random medications with dosage, frequency, duration, instructions\r",
+									"const medications = [\r",
+									"    { \r",
+									"        drug: 'Aspirin', \r",
+									"        dosage: '100mg', \r",
+									"        freq: 'Once daily', \r",
+									"        duration: 30,\r",
+									"        instr: 'Take with food in the morning. Do not take on empty stomach. Continue for cardiovascular protection.'\r",
+									"    },\r",
+									"    { \r",
+									"        drug: 'Ibuprofen', \r",
+									"        dosage: '400mg', \r",
+									"        freq: 'Three times daily', \r",
+									"        duration: 7,\r",
+									"        instr: 'Take after meals. Do not exceed 1200mg per day. Drink plenty of water. Stop if stomach pain occurs.'\r",
+									"    },\r",
+									"    { \r",
+									"        drug: 'Amoxicillin', \r",
+									"        dosage: '500mg', \r",
+									"        freq: 'Three times daily', \r",
+									"        duration: 10,\r",
+									"        instr: 'Complete the full course even if symptoms improve. Take at evenly spaced intervals. May cause diarrhea.'\r",
+									"    },\r",
+									"    { \r",
+									"        drug: 'Metformin', \r",
+									"        dosage: '850mg', \r",
+									"        freq: 'Twice daily', \r",
+									"        duration: 90,\r",
+									"        instr: 'Take with meals to reduce gastrointestinal side effects. Monitor blood glucose regularly. Stay well hydrated.'\r",
+									"    },\r",
+									"    { \r",
+									"        drug: 'Lisinopril', \r",
+									"        dosage: '10mg', \r",
+									"        freq: 'Once daily', \r",
+									"        duration: 90,\r",
+									"        instr: 'Take at the same time each day. Monitor blood pressure regularly. Avoid potassium supplements. May cause dizziness.'\r",
+									"    },\r",
+									"    { \r",
+									"        drug: 'Omeprazole', \r",
+									"        dosage: '20mg', \r",
+									"        freq: 'Once daily', \r",
+									"        duration: 30,\r",
+									"        instr: 'Take 30 minutes before breakfast. Swallow whole, do not crush or chew. For acid reflux management.'\r",
+									"    },\r",
+									"    { \r",
+									"        drug: 'Cetirizine', \r",
+									"        dosage: '10mg', \r",
+									"        freq: 'Once daily', \r",
+									"        duration: 30,\r",
+									"        instr: 'Take in the evening for allergy relief. May cause drowsiness. Avoid alcohol while taking this medication.'\r",
+									"    },\r",
+									"    { \r",
+									"        drug: 'Salbutamol', \r",
+									"        dosage: '100mcg', \r",
+									"        freq: 'As needed (max 4 times daily)', \r",
+									"        duration: 30,\r",
+									"        instr: 'Inhaler for asthma relief. Shake well before use. Rinse mouth after use. Seek help if no improvement.'\r",
+									"    }\r",
+									"];\r",
+									"\r",
+									"const randomMed = medications[Math.floor(Math.random() * medications.length)];\r",
+									"\r",
+									"// Calculate end date\r",
+									"const endDate = new Date(today);\r",
+									"endDate.setDate(endDate.getDate() + randomMed.duration);\r",
+									"const endDateStr = endDate.toISOString().slice(0, 10);\r",
+									"\r",
+									"pm.collectionVariables.set('tempDrugName', randomMed.drug);\r",
+									"pm.collectionVariables.set('tempDosage', randomMed.dosage);\r",
+									"pm.collectionVariables.set('tempFrequency', randomMed.freq);\r",
+									"pm.collectionVariables.set('tempDuration', randomMed.duration);\r",
+									"pm.collectionVariables.set('tempStartDate', startDate);\r",
+									"pm.collectionVariables.set('tempEndDate', endDateStr);\r",
+									"pm.collectionVariables.set('tempInstructions', randomMed.instr);\r",
+									"\r",
+									"console.log(\"🎲 Random Prescription Data Generated:\");\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"💊 Drug:\", randomMed.drug);\r",
+									"console.log(\"📊 Dosage:\", randomMed.dosage);\r",
+									"console.log(\"⏰ Frequency:\", randomMed.freq);\r",
+									"console.log(\"📅 Duration:\", randomMed.duration, \"days\");\r",
+									"console.log(\"📅 Start Date:\", startDate);\r",
+									"console.log(\"📅 End Date:\", endDateStr);\r",
+									"console.log(\"📋 Instructions:\");\r",
+									"console.log(\"  \", randomMed.instr);\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"⚠️  Using medicalRecordId:\", pm.collectionVariables.get(\"medicalRecordId\"));"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.collectionVariables.set(\"prescriptionId\", jsonData.id);\r",
+									"    \r",
+									"    console.log(\"\");\r",
+									"    console.log(\"✅ PRESCRIPTION CREATED WITH FDA DRUG DATA!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"👨‍⚕️ Doctor:\", jsonData.doctorName);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💊 Drug:\", jsonData.drugName);\r",
+									"    console.log(\"📊 Dosage:\", jsonData.dosage);\r",
+									"    console.log(\"⏰ Frequency:\", jsonData.frequency);\r",
+									"    console.log(\"📅 Duration:\", jsonData.durationDays, \"days\");\r",
+									"    console.log(\"📅 Start:\", jsonData.startDate);\r",
+									"    console.log(\"📅 End:\", jsonData.endDate);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💊 FDA DRUG INFORMATION:\");\r",
+									"    if (jsonData.drugInfo) {\r",
+									"        console.log(\"   Info:\", jsonData.drugInfo.substring(0, 100) + \"...\");\r",
+									"    } else {\r",
+									"        console.log(\"   Info: Not available\");\r",
+									"    }\r",
+									"    if (jsonData.sideEffects) {\r",
+									"        console.log(\"   ⚠️  Side Effects:\", jsonData.sideEffects.substring(0, 80) + \"...\");\r",
+									"    }\r",
+									"    if (jsonData.contraindications) {\r",
+									"        console.log(\"   🚫 Contraindications:\", jsonData.contraindications.substring(0, 80) + \"...\");\r",
+									"    }\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💾 ID saved to 'prescriptionId'\");\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Prescription created successfully\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has prescription data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.drugName).to.exist;\r",
+									"    pm.expect(jsonData.endDate).to.exist;\r",
+									"});\r",
+									"\r",
+									"pm.test(\"End date calculated automatically\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.endDate).to.exist;\r",
+									"    \r",
+									"    const start = new Date(jsonData.startDate);\r",
+									"    const end = new Date(jsonData.endDate);\r",
+									"    const daysDiff = Math.round((end - start) / (1000 * 60 * 60 * 24));\r",
+									"    \r",
+									"    pm.expect(daysDiff).to.eql(jsonData.durationDays);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"medicalRecordId\": \"{{medicalRecordId}}\",\r\n  \"drugName\": \"{{tempDrugName}}\",\r\n  \"dosage\": \"{{tempDosage}}\",\r\n  \"frequency\": \"{{tempFrequency}}\",\r\n  \"durationDays\": {{tempDuration}},\r\n  \"startDate\": \"{{tempStartDate}}\",\r\n  \"instructions\": \"{{tempInstructions}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7.2 Get All Prescriptions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"💊 PRESCRIPTIONS LIST\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.totalElements);\r",
+									"    console.log(\"📄 Page:\", jsonData.number + 1, \"of\", jsonData.totalPages);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.content.forEach((presc, index) => {\r",
+									"        console.log(`${index + 1}. ${presc.patientName} - ${presc.drugName}`);\r",
+									"        console.log(`   📊 ${presc.dosage} | ⏰ ${presc.frequency}`);\r",
+									"        console.log(`   📅 ${presc.startDate} to ${presc.endDate}`);\r",
+									"        console.log(`   👨‍⚕️ Dr. ${presc.doctorName}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions?page=0&size=10&sortBy=startDate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "startDate"
+								}
+							]
+						},
+						"description": "Retrieves all prescriptions with pagination.\n\nAccess: DOCTOR, ADMIN\n\nSorted by: startDate (descending)\n\nResponse includes:\n- Drug name, dosage, frequency\n- Start and end dates\n- Patient and doctor names\n- FDA drug information"
+					},
+					"response": []
+				},
+				{
+					"name": "7.3 Get Prescriptions by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"💊 PRESCRIPTION DETAILS\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"👨‍⚕️ Doctor:\", jsonData.doctorName);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💊 Drug:\", jsonData.drugName);\r",
+									"    console.log(\"📊 Dosage:\", jsonData.dosage);\r",
+									"    console.log(\"⏰ Frequency:\", jsonData.frequency);\r",
+									"    console.log(\"📅 Start Date:\", jsonData.startDate);\r",
+									"    console.log(\"📅 End Date:\", jsonData.endDate);\r",
+									"    console.log(\"⏱️  Duration:\", jsonData.durationDays, \"days\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📋 INSTRUCTIONS:\");\r",
+									"    console.log(\"  \", jsonData.instructions);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💊 FDA DRUG DATA:\");\r",
+									"    if (jsonData.drugInfo) {\r",
+									"        console.log(\"ℹ️  Info:\", jsonData.drugInfo);\r",
+									"    }\r",
+									"    if (jsonData.sideEffects) {\r",
+									"        console.log(\"⚠️  Side Effects:\", jsonData.sideEffects);\r",
+									"    }\r",
+									"    if (jsonData.contraindications) {\r",
+									"        console.log(\"🚫 Contraindications:\", jsonData.contraindications);\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions/{{prescriptionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions",
+								"{{prescriptionId}}"
+							]
+						},
+						"description": "Retrieves a specific prescription by ID.\n\nAccess: PATIENT (own), DOCTOR, ADMIN\n\nReturns complete prescription details including:\n- Full medication information\n- Detailed instructions\n- Complete FDA drug data\n- Patient and doctor information"
+					},
+					"response": []
+				},
+				{
+					"name": "7.4 Get Prescriptions by Medical Record",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(`💊 PRESCRIPTIONS FOR MEDICAL RECORD`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((presc, index) => {\r",
+									"        console.log(`${index + 1}. ${presc.drugName}`);\r",
+									"        console.log(`   📊 ${presc.dosage} | ⏰ ${presc.frequency}`);\r",
+									"        console.log(`   📅 ${presc.startDate} to ${presc.endDate}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions/medical-record/{{medicalRecordId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions",
+								"medical-record",
+								"{{medicalRecordId}}"
+							]
+						},
+						"description": "Retrieves all prescriptions for a medical record.\n\nURL Pattern: /prescriptions/medical-record/{medicalRecordId}\n\nAccess: PATIENT (own), DOCTOR, ADMIN\n\nUseful for:\n- Treatment plan review\n- Medication history for visit\n- Multi-drug interactions check"
+					},
+					"response": []
+				},
+				{
+					"name": "7.5 Get Prescriptions by Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(`💊 ALL PRESCRIPTIONS FOR PATIENT`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((presc, index) => {\r",
+									"        const now = new Date();\r",
+									"        const endDate = new Date(presc.endDate);\r",
+									"        const isActive = endDate >= now;\r",
+									"        const status = isActive ? \"✅ ACTIVE\" : \"⏹️  EXPIRED\";\r",
+									"        \r",
+									"        console.log(`${index + 1}. ${presc.drugName} ${status}`);\r",
+									"        console.log(`   📊 ${presc.dosage} | ⏰ ${presc.frequency}`);\r",
+									"        console.log(`   📅 ${presc.startDate} to ${presc.endDate}`);\r",
+									"        console.log(`   👨‍⚕️ Dr. ${presc.doctorName}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions/patient/{{patientId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions",
+								"patient",
+								"{{patientId}}"
+							]
+						},
+						"description": "Retrieves all prescriptions for a patient.\n\nURL Pattern: /prescriptions/patient/{patientId}\n\nAccess: PATIENT (own), DOCTOR, ADMIN\n\nResponse: Array (not paginated)  \nSorted by: startDate (descending)\n\nShows:\n\n- All past and current prescriptions\n    \n- Complete medication history\n    \n- Multiple doctors' prescriptions\n    \n\nUseful for:\n\n- Patient medication history\n    \n- Drug interaction checks\n    \n- Refill requests"
+					},
+					"response": []
+				},
+				{
+					"name": "7.6 Get Active Prescriptions for Patient",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Set current date\r",
+									"const today = new Date().toISOString().slice(0, 10);\r",
+									"pm.collectionVariables.set('currentDate', today);\r",
+									"\r",
+									"console.log(\"📅 Checking active prescriptions for date:\", today);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"💊 ACTIVE PRESCRIPTIONS\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📅 Date:\", pm.collectionVariables.get('currentDate'));\r",
+									"    console.log(\"📊 Active:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    if (jsonData.length > 0) {\r",
+									"        jsonData.forEach((presc, index) => {\r",
+									"            console.log(`${index + 1}. ${presc.drugName}`);\r",
+									"            console.log(`   📊 ${presc.dosage}`);\r",
+									"            console.log(`   ⏰ ${presc.frequency}`);\r",
+									"            console.log(`   📅 Valid until: ${presc.endDate}`);\r",
+									"            console.log(\"   ──────────────────\");\r",
+									"        });\r",
+									"    } else {\r",
+									"        console.log(\"No active prescriptions on this date\");\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions/patient/{{patientId}}/active?date=2025-12-26",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions",
+								"patient",
+								"{{patientId}}",
+								"active"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2025-12-26"
+								}
+							]
+						},
+						"description": "Retrieves active prescriptions for a patient on a specific date.\n\nQuery Parameter:\n- date: Date to check (YYYY-MM-DD format)\n\nExample:\n?date=2025-12-26\n\nReturns only prescriptions where:\nstartDate <= date <= endDate\n\nAccess: PATIENT (own), DOCTOR, ADMIN\n\nUseful for:\n- Current medication list\n- Daily medication schedule\n- Pharmacy refill validation\n- Drug interaction checks"
+					},
+					"response": []
+				},
+				{
+					"name": "7.7 Search Prescriptions by Drug Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    var drugName = pm.request.url.query.get('drugName');\r",
+									"    \r",
+									"    console.log(`🔍 SEARCH RESULTS: ${drugName}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Found:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    jsonData.forEach((presc, index) => {\r",
+									"        console.log(`${index + 1}. ${presc.patientName}`);\r",
+									"        console.log(`   📊 ${presc.dosage} | ⏰ ${presc.frequency}`);\r",
+									"        console.log(`   👨‍⚕️ Dr. ${presc.doctorName}`);\r",
+									"        console.log(`   📅 ${presc.startDate} to ${presc.endDate}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions/search?drugName=Aspirin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions",
+								"search"
+							],
+							"query": [
+								{
+									"key": "drugName",
+									"value": "Aspirin"
+								}
+							]
+						},
+						"description": "Searches prescriptions by drug name.\n\nQuery Parameter:\n- drugName: Drug name to search (partial match)\n\nExamples:\n?drugName=Aspirin\n?drugName=Ibuprofen\n?drugName=Metformin\n\nCase-insensitive partial match.\n\nAccess: DOCTOR, ADMIN\n\nUseful for:\n- Drug usage statistics\n- Recall notifications\n- Treatment pattern analysis\n- Pharmacy inventory"
+					},
+					"response": []
+				},
+				{
+					"name": "7.8 Update Prescription",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Extend duration\r",
+									"const today = new Date();\r",
+									"const newEndDate = new Date(today);\r",
+									"newEndDate.setDate(newEndDate.getDate() + 60);\r",
+									"const newEndDateStr = newEndDate.toISOString().slice(0, 10);\r",
+									"\r",
+									"pm.collectionVariables.set('extendedEndDate', newEndDateStr);\r",
+									"\r",
+									"console.log(\"📅 Extending prescription to:\", newEndDateStr);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Prescription updated successfully\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"✅ PRESCRIPTION UPDATED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📅 New End Date:\", jsonData.endDate);\r",
+									"    console.log(\"⏱️  Duration:\", jsonData.durationDays, \"days\");\r",
+									"    console.log(\"📋 Instructions:\", jsonData.instructions.substring(0, 80) + \"...\");\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"drugName\": \"{{tempDrugName}}\",\r\n  \"dosage\": \"{{tempDosage}}\",\r\n  \"frequency\": \"{{tempFrequency}}\",\r\n  \"durationDays\": 60,\r\n  \"startDate\": \"{{tempStartDate}}\",\r\n  \"endDate\": \"{{extendedEndDate}}\",\r\n  \"instructions\": \"{{tempInstructions}}. Treatment extended due to positive response. Continue monitoring symptoms.\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions/{{prescriptionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions",
+								"{{prescriptionId}}"
+							]
+						},
+						"description": "Updates prescription information.\n\n⚠️ Access: DOCTOR, ADMIN\n\nUpdatable fields:\n✓ Drug name\n✓ Dosage\n✓ Frequency\n✓ Duration\n✓ Dates\n✓ Instructions\n\nCommon use cases:\n- Extend prescription duration\n- Adjust dosage\n- Modify frequency\n- Update instructions\n- Correct errors"
+					},
+					"response": []
+				},
+				{
+					"name": "7.9 Delete Prescription",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Prescription deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Prescription deleted!\");\r",
+									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"prescriptionId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions/{{prescriptionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions",
+								"{{prescriptionId}}"
+							]
+						},
+						"description": "Deletes a prescription.\n\n⚠️ WARNING: Destructive operation!  \n⚠️ Access: ADMIN only\n\nResponse: 204 No Content\n\n⚠️ IMPORTANT: Consider marking as \"discontinued\"  \ninstead of deleting for audit trail purposes.\n\nDeleting prescriptions may violate medical record retention requirements."
+					},
+					"response": []
+				}
+			],
+			"description": "Prescription management - Medication prescriptions with FDA drug information.\n\nPRESCRIPTIONS:  \nMedications prescribed by doctors for patients.  \nAutomatic integration with FDA Drug API for drug information.\n\nFDA DRUG API INTEGRATION:  \nEach prescription automatically fetches:  \n\\- Drug information and description  \n\\- Side effects  \n\\- Contraindications  \n\\- Usage warnings\n\n⚠️ REQUIREMENTS:  \n\\- Medical Record must exist  \n\\- Only doctors can create/update prescriptions  \n\\- Linked to specific medical record\n\nCONTAINS:  \n\\- Drug name and dosage  \n\\- Frequency and duration  \n\\- Start and end dates  \n\\- Instructions for patient  \n\\- FDA drug information (auto-populated)  \n\\- Side effects and contraindications\n\nAccess: Doctors create/update, Patients can view their own"
+		},
+		{
+			"name": "8. INVOICES",
+			"item": [
+				{
+					"name": "8.1 Register New Invoice",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate issue date (today)\r",
+									"const today = new Date();\r",
+									"const issueDate = today.toISOString().slice(0, 10);\r",
+									"\r",
+									"// Generate due date (30 days from now)\r",
+									"const dueDate = new Date(today);\r",
+									"dueDate.setDate(dueDate.getDate() + 30);\r",
+									"const dueDateStr = dueDate.toISOString().slice(0, 10);\r",
+									"\r",
+									"// Random service amounts\r",
+									"const serviceTypes = [\r",
+									"    { desc: 'Medical consultation - General checkup', amount: 85.00 },\r",
+									"    { desc: 'Medical consultation - Follow-up visit', amount: 65.00 },\r",
+									"    { desc: 'Medical consultation - Specialist examination', amount: 120.00 },\r",
+									"    { desc: 'Medical consultation and prescription', amount: 95.00 },\r",
+									"    { desc: 'Complete physical examination', amount: 150.00 },\r",
+									"    { desc: 'Laboratory tests and consultation', amount: 180.00 },\r",
+									"    { desc: 'Medical certificate issuance', amount: 45.00 },\r",
+									"    { desc: 'Vaccination service', amount: 75.00 }\r",
+									"];\r",
+									"\r",
+									"const randomService = serviceTypes[Math.floor(Math.random() * serviceTypes.length)];\r",
+									"const amount = randomService.amount;\r",
+									"const taxRate = 0.22; // 22% IVA (Italian VAT)\r",
+									"const taxAmount = parseFloat((amount * taxRate).toFixed(2));\r",
+									"const totalAmount = parseFloat((amount + taxAmount).toFixed(2));\r",
+									"\r",
+									"pm.collectionVariables.set('tempInvoiceIssueDate', issueDate);\r",
+									"pm.collectionVariables.set('tempInvoiceDueDate', dueDateStr);\r",
+									"pm.collectionVariables.set('tempInvoiceDescription', randomService.desc);\r",
+									"pm.collectionVariables.set('tempInvoiceAmount', amount);\r",
+									"pm.collectionVariables.set('tempInvoiceTaxAmount', taxAmount);\r",
+									"\r",
+									"console.log(\"🎲 Random Invoice Data Generated:\");\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"📅 Issue Date:\", issueDate);\r",
+									"console.log(\"📅 Due Date:\", dueDateStr);\r",
+									"console.log(\"📋 Description:\", randomService.desc);\r",
+									"console.log(\"💰 Amount: €\" + amount.toFixed(2));\r",
+									"console.log(\"📊 Tax (22%): €\" + taxAmount.toFixed(2));\r",
+									"console.log(\"💳 Total: €\" + totalAmount.toFixed(2));\r",
+									"console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"console.log(\"⚠️  Using patientId:\", pm.collectionVariables.get(\"patientId\"));\r",
+									"console.log(\"⚠️  Using appointmentId:\", pm.collectionVariables.get(\"appointmentId\"));"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.collectionVariables.set(\"invoiceId\", jsonData.id);\r",
+									"    \r",
+									"    // Calculate total if not provided by backend\r",
+									"    const totalAmount = jsonData.totalAmount || (jsonData.amount + jsonData.taxAmount);\r",
+									"    \r",
+									"    console.log(\"\");\r",
+									"    console.log(\"✅ INVOICE CREATED & EMAIL SENT!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"📄 Invoice Number:\", jsonData.invoiceNumber);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"📋 Patient Code:\", jsonData.patientCode);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📅 Issue Date:\", jsonData.issueDate);\r",
+									"    console.log(\"📅 Due Date:\", jsonData.dueDate);\r",
+									"    console.log(\"📋 Description:\", jsonData.description);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"💰 Amount: €\" + jsonData.amount.toFixed(2));\r",
+									"    console.log(\"📊 Tax: €\" + jsonData.taxAmount.toFixed(2));\r",
+									"    console.log(\"💳 Total: €\" + totalAmount.toFixed(2));\r",
+									"    console.log(\"📊 Status:\", jsonData.status);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📧 Email notification sent to patient!\");\r",
+									"    console.log(\"💾 ID saved to 'invoiceId'\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"}\r",
+									"\r",
+									"pm.test(\"Invoice created successfully\", function () {\r",
+									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Response has invoice data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.exist;\r",
+									"    pm.expect(jsonData.invoiceNumber).to.exist;\r",
+									"    pm.expect(jsonData.amount).to.exist;\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Invoice number is unique\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.invoiceNumber).to.match(/^INV-\\d{4}-\\d+$/);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Total amount calculated correctly\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    const expectedTotal = jsonData.amount + jsonData.taxAmount;\r",
+									"    const actualTotal = jsonData.totalAmount || expectedTotal;\r",
+									"    pm.expect(actualTotal).to.be.closeTo(expectedTotal, 0.01);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"patientId\": \"{{patientId}}\",\r\n  \"appointmentId\": \"{{appointmentId}}\",\r\n  \"issueDate\": \"{{tempInvoiceIssueDate}}\",\r\n  \"dueDate\": \"{{tempInvoiceDueDate}}\",\r\n  \"amount\": {{tempInvoiceAmount}},\r\n  \"taxAmount\": {{tempInvoiceTaxAmount}},\r\n  \"description\": \"{{tempInvoiceDescription}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/invoices",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices"
+							]
+						},
+						"description": "Creates an invoice with automatic email notification.\n\n**Description**  \nThis request creates an invoice for a patient. Upon successful creation, the system sends an email notification to the patient via Mailgun (when available).\n\n**Access control**\n\n- ADMIN role only\n    \n\n**Email notification (Mailgun integration)**  \nWhen the invoice is created, an email is automatically sent to the patient including:\n\n- Invoice number and invoice details\n    \n- Amount due and payment breakdown\n    \n- Due date\n    \n- Clinic contact information\n    \n- Payment instructions\n    \n\n**Randomized data**\n\n- One of 8 predefined service types\n    \n- Realistic pricing range: €45–€180\n    \n- Automatic tax calculation: 22% IVA\n    \n- Payment terms: 30 days\n    \n\n**Service types included**\n\n- General checkup (€85)\n    \n- Follow-up visit (€65)\n    \n- Specialist examination (€120)\n    \n- Prescription service (€95)\n    \n- Physical examination (€150)\n    \n- Lab tests (€180)\n    \n- Medical certificate (€45)\n    \n- Vaccination (€75)\n    \n\n**Automatic calculations and defaults**\n\n- Invoice number generated in the format: `INV-XXXX`\n    \n- Tax amount calculated as: 22% of the service amount\n    \n- Total amount calculated as: amount + tax\n    \n- Invoice status defaults to: PENDING\n    \n\n**Requirements**\n\n- `patientId` (required)\n    \n- `appointmentId` (optional but recommended)\n    \n\n**Fallback behavior**\n\n- If the Mailgun API is unavailable, the invoice is still created, but no email notification is sent."
+					},
+					"response": []
+				},
+				{
+					"name": "8.2 Get All Invoices",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"💰 INVOICES LIST\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total:\", jsonData.totalElements);\r",
+									"    console.log(\"📄 Page:\", jsonData.number + 1, \"of\", jsonData.totalPages);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    let totalPending = 0;\r",
+									"    let totalPaid = 0;\r",
+									"    \r",
+									"    jsonData.content.forEach((inv, index) => {\r",
+									"        const statusIcon = inv.status === 'PAID' ? '✅' : \r",
+									"                          inv.status === 'PENDING' ? '💳' : \r",
+									"                          inv.status === 'CANCELLED' ? '❌' : '⏰';\r",
+									"        \r",
+									"        console.log(`${index + 1}. ${statusIcon} ${inv.invoiceNumber}`);\r",
+									"        console.log(`   👤 ${inv.patientName}`);\r",
+									"        console.log(`   💰 €${inv.totalAmount.toFixed(2)} | 📊 ${inv.status}`);\r",
+									"        console.log(`   📅 ${inv.issueDate} → Due: ${inv.dueDate}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"        \r",
+									"        if (inv.status === 'PENDING') totalPending += inv.totalAmount;\r",
+									"        if (inv.status === 'PAID') totalPaid += inv.totalAmount;\r",
+									"    });\r",
+									"    \r",
+									"    if (jsonData.content.length > 0) {\r",
+									"        console.log(\"\");\r",
+									"        console.log(\"💰 TOTALS:\");\r",
+									"        console.log(\"   Pending: €\" + totalPending.toFixed(2));\r",
+									"        console.log(\"   Paid: €\" + totalPaid.toFixed(2));\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices?page=0&size=10&sortBy=issueDate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "issueDate"
+								}
+							]
+						},
+						"description": "Retrieves all invoices with pagination.\n\nAccess: ADMIN only\n\nSorted by: issueDate (descending)\n\nResponse includes:\n- Invoice number and status\n- Patient information\n- Amounts and totals\n- Issue and due dates\n- Payment information"
+					},
+					"response": []
+				},
+				{
+					"name": "8.3 Get Invoice by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    const totalAmount = jsonData.totalAmount || (jsonData.amount + jsonData.taxAmount);\r",
+									"    \r",
+									"    const statusIcon = jsonData.status === 'PAID' ? '✅' : \r",
+									"                      jsonData.status === 'PENDING' ? '💳' : \r",
+									"                      jsonData.status === 'CANCELLED' ? '❌' : '⏰';\r",
+									"    \r",
+									"    console.log(\"💰 INVOICE DETAILS\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"🆔 ID:\", jsonData.id);\r",
+									"    console.log(\"📄 Invoice Number:\", jsonData.invoiceNumber);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"📋 Patient Code:\", jsonData.patientCode);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📅 Issue Date:\", jsonData.issueDate);\r",
+									"    console.log(\"📅 Due Date:\", jsonData.dueDate);\r",
+									"    console.log(`📊 Status: ${statusIcon} ${jsonData.status}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📋 CHARGES:\");\r",
+									"    console.log(\"   Description:\", jsonData.description);\r",
+									"    console.log(\"   Amount: €\" + jsonData.amount.toFixed(2));\r",
+									"    console.log(\"   Tax: €\" + jsonData.taxAmount.toFixed(2));\r",
+									"    console.log(\"   ─────────────────\");\r",
+									"    console.log(\"   TOTAL: €\" + totalAmount.toFixed(2));\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    if (jsonData.paidAt) {\r",
+									"        console.log(\"💳 PAYMENT:\");\r",
+									"        console.log(\"   Date:\", jsonData.paidAt);\r",
+									"        console.log(\"   Method:\", jsonData.paymentMethod || \"N/A\");\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices/{{invoiceId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"{{invoiceId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "8.4 Get Invoice by Number",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"💰 INVOICE FOUND BY NUMBER\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📄 Invoice Number:\", jsonData.invoiceNumber);\r",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
+									"    console.log(\"💰 Total: €\" + jsonData.totalAmount.toFixed(2));\r",
+									"    console.log(\"📊 Status:\", jsonData.status);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices/number/INV-2025-0001",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"number",
+								"INV-2025-0001"
+							]
+						},
+						"description": "Retrieves an invoice by its invoice number.  \n  \nURL Pattern: /invoices/number/{invoiceNumber}  \n  \nExample numbers:  \n\\- INV-\\[YEAR}-0001\n\n\\- INV-\\[YEAR}-0002\n\n\\- INV-\\[YEAR}-0003  \n  \n  \nAccess: PATIENT (own), ADMIN  \n  \nUseful for:  \n\\- Quick invoice lookup  \n\\- Patient inquiries  \n\\- Payment processing  \n\\- External system integration"
+					},
+					"response": []
+				},
+				{
+					"name": "8.5 Get Invoices by Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(`💰 INVOICES FOR PATIENT`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Total Invoices:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    let totalDue = 0;\r",
+									"    let totalPaid = 0;\r",
+									"    \r",
+									"    jsonData.forEach((inv, index) => {\r",
+									"        const statusIcon = inv.status === 'PAID' ? '✅' : \r",
+									"                          inv.status === 'PENDING' ? '💳' : '❌';\r",
+									"        \r",
+									"        console.log(`${index + 1}. ${statusIcon} ${inv.invoiceNumber}`);\r",
+									"        console.log(`   💰 €${inv.totalAmount.toFixed(2)}`);\r",
+									"        console.log(`   📅 ${inv.issueDate} | Due: ${inv.dueDate}`);\r",
+									"        console.log(`   📊 ${inv.status}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"        \r",
+									"        if (inv.status === 'PENDING') totalDue += inv.totalAmount;\r",
+									"        if (inv.status === 'PAID') totalPaid += inv.totalAmount;\r",
+									"    });\r",
+									"    \r",
+									"    console.log(\"\");\r",
+									"    console.log(\"💰 PATIENT TOTALS:\");\r",
+									"    console.log(\"   Amount Due: €\" + totalDue.toFixed(2));\r",
+									"    console.log(\"   Amount Paid: €\" + totalPaid.toFixed(2));\r",
+									"    console.log(\"   Grand Total: €\" + (totalDue + totalPaid).toFixed(2));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices/patient/{{patientId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"patient",
+								"{{patientId}}"
+							]
+						},
+						"description": "Retrieves all invoices for a specific patient.\n\nURL Pattern: /invoices/patient/{patientId}\n\nAccess: PATIENT (own), ADMIN\n\nResponse: Array (not paginated)\nSorted by: issueDate (descending)\n\nShows complete billing history with totals.\n\nUseful for:\n- Patient billing dashboard\n- Payment history\n- Outstanding balance\n- Financial reports"
+					},
+					"response": []
+				},
+				{
+					"name": "8.6 Get Invoices by Status (Pending)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    var status = pm.request.url.path[pm.request.url.path.length - 1];\r",
+									"    \r",
+									"    console.log(`💳 INVOICES WITH STATUS: ${status}`);\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Found:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    let total = 0;\r",
+									"    jsonData.forEach((inv, index) => {\r",
+									"        console.log(`${index + 1}. ${inv.invoiceNumber}`);\r",
+									"        console.log(`   👤 ${inv.patientName}`);\r",
+									"        console.log(`   💰 €${inv.totalAmount.toFixed(2)}`);\r",
+									"        console.log(`   📅 Due: ${inv.dueDate}`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"        total += inv.totalAmount;\r",
+									"    });\r",
+									"    \r",
+									"    if (jsonData.length > 0) {\r",
+									"        console.log(\"\");\r",
+									"        console.log(\"💰 Total \" + status + \": €\" + total.toFixed(2));\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices/status/PENDING",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"status",
+								"PENDING"
+							]
+						},
+						"description": "Retrieves invoices filtered by status.\n\n**Endpoint**  \n`/invoices/status/{status}`\n\n**Description**  \nThis endpoint returns all invoices matching the specified status.\n\n**Available statuses**\n\n- PENDING – Awaiting payment\n    \n- PAID – Payment received\n    \n- CANCELLED – Invoice cancelled\n    \n- OVERDUE – Payment past due date\n    \n\n**Usage**  \nTo retrieve invoices with a specific status, replace `{status}` in the URL with one of the supported values.\n\nExamples\n\n- `/invoices/status/PENDING`\n    \n- `/invoices/status/PAID`\n    \n- `/invoices/status/CANCELLED`\n    \n- `/invoices/status/OVERDUE`\n    \n\n**Important**\n\n- The `status` path parameter is case-sensitive and must be provided in UPPERCASE.\n    \n\n**Access control**\n\n- ADMIN role only\n    \n\n**Typical use cases**\n\n- Accounts receivable monitoring\n    \n- Payment follow-ups\n    \n- Financial and accounting reporting"
+					},
+					"response": []
+				},
+				{
+					"name": "8.7 Get Overdue Invoices",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const today = new Date().toISOString().slice(0, 10);\r",
+									"pm.collectionVariables.set('todayDate', today);\r",
+									"console.log(\"📅 Checking overdue invoices as of:\", today);"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"⏰ OVERDUE INVOICES\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📅 As of:\", pm.collectionVariables.get('todayDate'));\r",
+									"    console.log(\"📊 Count:\", jsonData.length);\r",
+									"    console.log(\"\");\r",
+									"    \r",
+									"    let totalOverdue = 0;\r",
+									"    jsonData.forEach((inv, index) => {\r",
+									"        const dueDate = new Date(inv.dueDate);\r",
+									"        const today = new Date(pm.collectionVariables.get('todayDate'));\r",
+									"        const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));\r",
+									"        \r",
+									"        console.log(`${index + 1}. ⚠️  ${inv.invoiceNumber}`);\r",
+									"        console.log(`   👤 ${inv.patientName}`);\r",
+									"        console.log(`   💰 €${inv.totalAmount.toFixed(2)}`);\r",
+									"        console.log(`   📅 Due: ${inv.dueDate} (${daysOverdue} days overdue)`);\r",
+									"        console.log(\"   ──────────────────\");\r",
+									"        totalOverdue += inv.totalAmount;\r",
+									"    });\r",
+									"    \r",
+									"    if (jsonData.length > 0) {\r",
+									"        console.log(\"\");\r",
+									"        console.log(\"💰 Total Overdue: €\" + totalOverdue.toFixed(2));\r",
+									"        console.log(\"⚠️  Action Required: Follow up with patients\");\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices/overdue?currentDate=2025-12-26",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"overdue"
+							],
+							"query": [
+								{
+									"key": "currentDate",
+									"value": "2025-12-26"
+								}
+							]
+						},
+						"description": "Retrieves invoices past their due date.\n\nQuery Parameter:\n- currentDate: Date to check against (YYYY-MM-DD)\n\nExample:\n?currentDate=2025-12-26\n\nReturns invoices where:\n- Status = PENDING\n- Due date < current date\n\nAccess: ADMIN only\n\nUseful for:\n- Payment reminders\n- Collections process\n- Aging reports\n- Cash flow management\n\nImportant for financial management!"
+					},
+					"response": []
+				},
+				{
+					"name": "8.8 Calculate Total by Status (Pending)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var total = pm.response.json();\r",
+									"    var status = pm.request.url.path[pm.request.url.path.length - 1];\r",
+									"    \r",
+									"    console.log(\"💰 FINANCIAL SUMMARY\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📊 Status:\", status);\r",
+									"    console.log(\"💰 Total Amount: €\" + parseFloat(total).toFixed(2));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices/total/PENDING",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"total",
+								"PENDING"
+							]
+						},
+						"description": "Calculates total amount for invoices with specific status.\n\nURL Pattern: /invoices/total/{status}\n\nExamples:\n- /invoices/total/PAID (revenue received)\n- /invoices/total/PENDING (outstanding receivables)\n- /invoices/total/CANCELLED (lost revenue)\n\nResponse: Decimal number (total amount)\n\nAccess: ADMIN only\n\nUseful for:\n- Financial reporting\n- Revenue tracking\n- KPI dashboards\n- Budget planning"
+					},
+					"response": []
+				},
+				{
+					"name": "8.9 Update Invoice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Invoice updated successfully\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"✅ INVOICE UPDATED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📄 Invoice:\", jsonData.invoiceNumber);\r",
+									"    console.log(\"💰 Total: €\" + jsonData.totalAmount.toFixed(2));\r",
+									"    console.log(\"📋 Description:\", jsonData.description.substring(0, 60) + \"...\");\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"issueDate\": \"{{tempInvoiceIssueDate}}\",\r\n  \"dueDate\": \"{{tempInvoiceDueDate}}\",\r\n  \"amount\": {{tempInvoiceAmount}},\r\n  \"taxAmount\": {{tempInvoiceTaxAmount}},\r\n  \"description\": \"{{tempInvoiceDescription}} - Revised billing with additional services included.\",\r\n  \"status\": \"PENDING\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/invoices/{{invoiceId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"{{invoiceId}}"
+							]
+						},
+						"description": "Updates invoice information.\n\n⚠️ Access: ADMIN only\n\nUpdatable fields:  \n✓ Issue and due dates  \n✓ Amount and tax  \n✓ Description  \n✓ Status\n\nCommon use cases:\n\n- Correct billing errors\n    \n- Adjust amounts\n    \n- Update descriptions\n    \n- Change due dates"
+					},
+					"response": []
+				},
+				{
+					"name": "8.10 Mark Invoice as Paid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Invoice marked as paid\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    console.log(\"✅ PAYMENT RECEIVED!\");\r",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
+									"    console.log(\"📄 Invoice:\", jsonData.invoiceNumber);\r",
+									"    console.log(\"💰 Amount: €\" + jsonData.totalAmount.toFixed(2));\r",
+									"    console.log(\"📊 Status:\", jsonData.status);\r",
+									"    console.log(\"💳 Payment Method:\", jsonData.paymentMethod);\r",
+									"    console.log(\"📅 Payment Date:\", jsonData.paymentDate);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices/{{invoiceId}}/pay?paymentMethod=Credit Card",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"{{invoiceId}}",
+								"pay"
+							],
+							"query": [
+								{
+									"key": "paymentMethod",
+									"value": "Credit Card"
+								}
+							]
+						},
+						"description": "Marks an invoice as paid.\n\nQuery Parameter:\n- paymentMethod: Payment method used\n\nExamples:\n?paymentMethod=Credit Card\n?paymentMethod=Cash\n?paymentMethod=Bank Transfer\n?paymentMethod=Insurance\n\nAutomatically sets:\n- status = PAID\n- paymentDate = current date\n- paymentMethod = provided value\n\nAccess: PATIENT (own), ADMIN\n\nUse this after receiving payment."
+					},
+					"response": []
+				},
+				{
+					"name": "8.11 Delete Invoice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Invoice deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Invoice deleted!\");\r",
+									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"invoiceId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/invoices/{{invoiceId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"invoices",
+								"{{invoiceId}}"
+							]
+						},
+						"description": "StartFragmentDeletes an invoice.\n\n⚠️ WARNING: Destructive operation!  \n⚠️ Access: ADMIN only\n\nResponse: 204 No Content\n\n⚠️ IMPORTANT: Deleting invoices may violate  \naccounting and tax regulations.\n\nConsider marking as CANCELLED instead:  \n\\- Preserves audit trail  \n\\- Maintains financial records  \n\\- Complies with regulationsEndFragment"
+					},
+					"response": []
+				}
+			],
+			"description": "Invoice management - Billing and payment tracking with email notifications.\n\nINVOICES:  \nFinancial documents for patient appointments and services.  \nAutomatic email notifications via Mailgun API.\n\nMAILGUN EMAIL INTEGRATION:  \nEach invoice creation sends automatic email to patient with:  \n\\- Invoice details and amount  \n\\- Payment due date  \n\\- Payment instructions  \n\\- Clinic contact information\n\n⚠️ REQUIREMENTS:  \n\\- Patient must exist  \n\\- Appointment recommended (optional)  \n\\- Only admins can create/manage invoices\n\nINVOICE STATUSES:  \n💳 PENDING - Awaiting payment  \n✅ PAID - Payment received  \n❌ CANCELLED - Invoice cancelled  \n⏰ OVERDUE - Past due date\n\nCONTAINS:  \n\\- Unique invoice number (auto-generated)  \n\\- Patient information  \n\\- Appointment details (optional)  \n\\- Amount and tax  \n\\- Issue and due dates  \n\\- Payment status and method  \n\\- Description of services\n\nAccess: Admins manage all, Patients view their own"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3001"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "adminEmail",
+			"value": "admin@clinic.com"
+		},
+		{
+			"key": "adminPassword",
+			"value": "Admin123!"
+		},
+		{
+			"key": "patientId",
+			"value": ""
+		},
+		{
+			"key": "doctorId",
+			"value": ""
+		},
+		{
+			"key": "staffId",
+			"value": ""
+		},
+		{
+			"key": "appointmentId",
+			"value": ""
+		},
+		{
+			"key": "medicalRecordId",
+			"value": ""
+		},
+		{
+			"key": "prescriptionId",
+			"value": ""
+		},
+		{
+			"key": "invoiceId",
+			"value": ""
+		},
+		{
+			"key": "tempFirstName",
+			"value": ""
+		},
+		{
+			"key": "tempLastName",
+			"value": ""
+		},
+		{
+			"key": "tempEmail",
+			"value": ""
+		},
+		{
+			"key": "tempPhone",
+			"value": ""
+		},
+		{
+			"key": "tempDOB",
+			"value": ""
+		},
+		{
+			"key": "tempTaxId",
+			"value": ""
+		},
+		{
+			"key": "tempAddress",
+			"value": ""
+		},
+		{
+			"key": "tempBloodType",
+			"value": ""
+		},
+		{
+			"key": "tempCity",
+			"value": ""
+		},
+		{
+			"key": "tempProvince",
+			"value": ""
+		},
+		{
+			"key": "tempZipCode",
+			"value": ""
+		},
+		{
+			"key": "tempAllergies",
+			"value": ""
+		},
+		{
+			"key": "tempChronicDiseases",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorFirstName",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorLastName",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorEmail",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorPhone",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorEmergency",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorDOB",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorHireDate",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorSalary",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorDepartment",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorLicense",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorSpecialization",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorBiography",
+			"value": ""
+		},
+		{
+			"key": "tempDoctorEmployeeStatus",
+			"value": ""
+		},
+		{
+			"key": "tempStaffFirstName",
+			"value": ""
+		},
+		{
+			"key": "tempStaffLastName",
+			"value": ""
+		},
+		{
+			"key": "tempStaffEmail",
+			"value": ""
+		},
+		{
+			"key": "tempStaffPhone",
+			"value": ""
+		},
+		{
+			"key": "tempStaffEmergency",
+			"value": ""
+		},
+		{
+			"key": "tempStaffDOB",
+			"value": ""
+		},
+		{
+			"key": "tempStaffHireDate",
+			"value": ""
+		},
+		{
+			"key": "tempStaffSalary",
+			"value": ""
+		},
+		{
+			"key": "tempStaffEmployeeStatus",
+			"value": ""
+		},
+		{
+			"key": "tempStaffDepartment",
+			"value": ""
+		},
+		{
+			"key": "tempStaffRole",
+			"value": ""
+		},
+		{
+			"key": "tempStaffResponsibilities",
+			"value": ""
+		},
+		{
+			"key": "patientCode",
+			"value": ""
+		},
+		{
+			"key": "tempAppointmentDateTime",
+			"value": ""
+		},
+		{
+			"key": "tempAppointmentDuration",
+			"value": ""
+		},
+		{
+			"key": "tempAppointmentReason",
+			"value": ""
+		},
+		{
+			"key": "tempAppointmentNotes",
+			"value": ""
+		},
+		{
+			"key": "appointment2Id",
+			"value": ""
+		},
+		{
+			"key": "tempPastAppointmentDateTime",
+			"value": ""
+		},
+		{
+			"key": "tempNewAppointmentDateTime",
+			"value": ""
+		},
+		{
+			"key": "tempRecordDate",
+			"value": ""
+		},
+		{
+			"key": "tempDiagnosis",
+			"value": ""
+		},
+		{
+			"key": "tempSymptoms",
+			"value": ""
+		},
+		{
+			"key": "tempTreatment",
+			"value": ""
+		},
+		{
+			"key": "tempIcdCode",
+			"value": ""
+		},
+		{
+			"key": "tempDrugName",
+			"value": ""
+		},
+		{
+			"key": "tempDosage",
+			"value": ""
+		},
+		{
+			"key": "tempFrequency",
+			"value": ""
+		},
+		{
+			"key": "tempDuration",
+			"value": ""
+		},
+		{
+			"key": "tempStartDate",
+			"value": ""
+		},
+		{
+			"key": "tempEndDate",
+			"value": ""
+		},
+		{
+			"key": "tempInstructions",
+			"value": ""
+		},
+		{
+			"key": "currentDate",
+			"value": ""
+		},
+		{
+			"key": "tempInvoiceIssueDate",
+			"value": ""
+		},
+		{
+			"key": "tempInvoiceDueDate",
+			"value": ""
+		},
+		{
+			"key": "tempInvoiceDescription",
+			"value": ""
+		},
+		{
+			"key": "tempInvoiceAmount",
+			"value": ""
+		},
+		{
+			"key": "tempInvoiceTaxAmount",
+			"value": ""
+		},
+		{
+			"key": "todayDate",
+			"value": ""
+		}
+	]
+}

@@ -1,0 +1,57 @@
+# ====================================
+# Happy Health Clinic - Configuration Template
+# ====================================
+# Copy this file to 'application-local.properties' and fill in your values
+
+# ====================================
+# Server Configuration
+# ====================================
+server.port=3001
+
+# ====================================
+# Database Configuration
+# ====================================
+# PostgreSQL database connection
+spring.datasource.url=jdbc:postgresql://localhost:5432/happy_health_clinic
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_POSTGRES_PASSWORD_HERE
+
+# ====================================
+# JWT Configuration
+# ====================================
+# Generate a secure random string (at least 256 bits)
+# Example: you can use https://www.grc.com/passwords.htm
+# Or run in terminal: openssl rand -base64 64
+jwt.secret=YOUR_SECURE_JWT_SECRET_HERE_MINIMUM_256_BITS
+jwt.expiration=86400000
+
+# ====================================
+# OpenWeather API Configuration (Optional but Recommended)
+# ====================================
+# Get your free API key:
+# 1. Go to https://openweathermap.org/api
+# 2. Sign up for a free account
+# 3. Verify your email
+# 4. Go to API keys and copy your key
+# 5. Wait 10-15 minutes for activation
+#
+# Note: Without this key, weather features will use fallback data
+openweather.api.key=YOUR_OPENWEATHER_API_KEY_HERE
+
+# ====================================
+# Mailgun Email Service Configuration (Optional)
+# ====================================
+# Get your credentials:
+# 1. Go to https://www.mailgun.com/
+# 2. Sign up for a free account (requires credit card but won't charge)
+# 3. Go to Sending -> Domain settings -> API keys
+# 4. Copy your Private API key (starts with 'key-')
+# 5. Use your sandbox domain (sandboxXXXXXXXX.mailgun.org)
+# 6. Add authorized recipients in Mailgun dashboard
+#
+# Note: Without these, email features will log to console instead of sending
+mailgun.api.key=YOUR_MAILGUN_API_KEY_HERE
+mailgun.domain=sandboxXXXXXXXX.mailgun.org
+mailgun.from.email=noreply@${mailgun.domain}
+mailgun.from.name=Happy Health Clinic
+mailgun.base.url=https://api.mailgun.net/v3
