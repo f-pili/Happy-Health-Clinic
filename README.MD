@@ -119,6 +119,7 @@ mvn -version
 ### 1. Clone Repository
 ```bash
 git clone https://github.com/f-pili/Happy-Health-Clinic.git
+
 cd happy-health-clinic
 ```
 
