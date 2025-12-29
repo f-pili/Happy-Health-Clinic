@@ -92,19 +92,11 @@ public class Appointment {
 
     /**
      * The timestamp when the appointment record was created.
-     * Automatically set on entity creation.
+     * Automatically set by Hibernate on entity creation and cannot be updated.
      */
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    /**
-     * Sets the creation timestamp before persisting the entity.
-     */
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
 
     /**
      * The medical record associated with this appointment.
