@@ -1,5 +1,6 @@
 package it.fpili.happy_health_clinic.services;
 
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,11 @@ public class DrugService {
     private static final String FDA_API_URL = "https://api.fda.gov/drug/label.json";
 
     /**
+     * Maximum length for truncating text fields.
+     */
+    private static final int MAX_TEXT_LENGTH = 500;
+
+    /**
      * REST template for making HTTP requests to external APIs.
      */
     private final RestTemplate restTemplate = new RestTemplate();
@@ -45,6 +51,7 @@ public class DrugService {
 
             log.info("Fetching drug information for: {}", drugName);
 
+            @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
             if (response == null || !response.containsKey("results")) {
@@ -52,13 +59,15 @@ public class DrugService {
                 return getDefaultDrugInfo(drugName);
             }
 
+            @SuppressWarnings("unchecked")
             List<Map<String, Object>> results = (List<Map<String, Object>>) response.get("results");
+
             if (results.isEmpty()) {
                 log.warn("Empty results for drug: {}", drugName);
                 return getDefaultDrugInfo(drugName);
             }
 
-            Map<String, Object> drugData = results.get(0);
+            Map<String, Object> drugData = results.getFirst();
 
             DrugInformation drugInfo = new DrugInformation();
 
@@ -94,7 +103,7 @@ public class DrugService {
         }
 
         String result = info.toString().trim();
-        return result.isEmpty() ? null : truncate(result, 500);
+        return result.isEmpty() ? null : truncate(result);
     }
 
     /**
@@ -156,14 +165,16 @@ public class DrugService {
             }
 
             Object field = drugData.get(fieldName);
-            if (field instanceof List) {
-                List<String> items = (List<String>) field;
-                if (items.isEmpty()) {
+            if (field instanceof List<?> listField) {
+                if (listField.isEmpty()) {
                     return null;
                 }
-                return truncate(items.get(0), 500);
-            } else if (field instanceof String) {
-                return truncate((String) field, 500);
+                Object firstItem = listField.getFirst();
+                if (firstItem instanceof String str) {
+                    return truncate(str);
+                }
+            } else if (field instanceof String str) {
+                return truncate(str);
             }
             return null;
         } catch (Exception e) {
@@ -173,20 +184,19 @@ public class DrugService {
     }
 
     /**
-     * Truncates text to a maximum length.
+     * Truncates text to the maximum configured length.
      *
      * @param text the text to truncate
-     * @param maxLength the maximum length
      * @return the truncated text with ellipsis if exceeding max length
      */
-    private String truncate(String text, int maxLength) {
+    private String truncate(String text) {
         if (text == null) {
             return null;
         }
-        if (text.length() <= maxLength) {
+        if (text.length() <= MAX_TEXT_LENGTH) {
             return text;
         }
-        return text.substring(0, maxLength) + "...";
+        return text.substring(0, MAX_TEXT_LENGTH) + "...";
     }
 
     /**
@@ -207,6 +217,7 @@ public class DrugService {
      * Data class for holding drug information.
      * Encapsulates drug details including side effects and contraindications.
      */
+    @Data
     public static class DrugInformation {
         /**
          * General information about the drug and its purpose.
@@ -222,59 +233,5 @@ public class DrugService {
          * Contraindications and warnings for the drug.
          */
         private String contraindications;
-
-        /**
-         * Gets the drug information.
-         *
-         * @return the drug information
-         */
-        public String getDrugInfo() {
-            return drugInfo;
-        }
-
-        /**
-         * Sets the drug information.
-         *
-         * @param drugInfo the drug information to set
-         */
-        public void setDrugInfo(String drugInfo) {
-            this.drugInfo = drugInfo;
-        }
-
-        /**
-         * Gets the side effects information.
-         *
-         * @return the side effects
-         */
-        public String getSideEffects() {
-            return sideEffects;
-        }
-
-        /**
-         * Sets the side effects information.
-         *
-         * @param sideEffects the side effects to set
-         */
-        public void setSideEffects(String sideEffects) {
-            this.sideEffects = sideEffects;
-        }
-
-        /**
-         * Gets the contraindications information.
-         *
-         * @return the contraindications
-         */
-        public String getContraindications() {
-            return contraindications;
-        }
-
-        /**
-         * Sets the contraindications information.
-         *
-         * @param contraindications the contraindications to set
-         */
-        public void setContraindications(String contraindications) {
-            this.contraindications = contraindications;
-        }
     }
 }

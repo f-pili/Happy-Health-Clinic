@@ -1,5 +1,6 @@
 package it.fpili.happy_health_clinic.services;
 
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,6 +57,7 @@ public class WeatherService {
 
             log.info("Fetching weather for city: {}", city);
 
+            @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
             if (response == null) {
@@ -63,9 +65,13 @@ public class WeatherService {
                 return getDefaultWeather();
             }
 
+            @SuppressWarnings("unchecked")
             Map<String, Object> main = (Map<String, Object>) response.get("main");
+
+            @SuppressWarnings("unchecked")
             List<Map<String, Object>> weatherList = (List<Map<String, Object>>) response.get("weather");
-            Map<String, Object> weather = weatherList.get(0);
+
+            Map<String, Object> weather = weatherList.getFirst();
 
             double temp = ((Number) main.get("temp")).doubleValue();
             String description = (String) weather.get("description");
@@ -126,6 +132,7 @@ public class WeatherService {
      * Data class for holding weather information.
      * Encapsulates temperature, conditions, and health alerts.
      */
+    @Data
     public static class WeatherData {
         /**
          * The current temperature in Celsius.
@@ -141,59 +148,5 @@ public class WeatherService {
          * A health-related alert message based on weather conditions, or null if no alert.
          */
         private String alert;
-
-        /**
-         * Gets the temperature.
-         *
-         * @return the temperature in Celsius
-         */
-        public BigDecimal getTemperature() {
-            return temperature;
-        }
-
-        /**
-         * Sets the temperature.
-         *
-         * @param temperature the temperature to set
-         */
-        public void setTemperature(BigDecimal temperature) {
-            this.temperature = temperature;
-        }
-
-        /**
-         * Gets the weather conditions description.
-         *
-         * @return the conditions
-         */
-        public String getConditions() {
-            return conditions;
-        }
-
-        /**
-         * Sets the weather conditions description.
-         *
-         * @param conditions the conditions to set
-         */
-        public void setConditions(String conditions) {
-            this.conditions = conditions;
-        }
-
-        /**
-         * Gets the health alert message.
-         *
-         * @return the alert message or null if no alert
-         */
-        public String getAlert() {
-            return alert;
-        }
-
-        /**
-         * Sets the health alert message.
-         *
-         * @param alert the alert message to set
-         */
-        public void setAlert(String alert) {
-            this.alert = alert;
-        }
     }
 }
