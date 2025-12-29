@@ -35,7 +35,7 @@ public class Patient extends User {
     /**
      * The patient's street address.
      */
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String address;
 
     /**

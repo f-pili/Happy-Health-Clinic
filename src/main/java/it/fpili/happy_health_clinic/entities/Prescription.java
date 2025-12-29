@@ -32,7 +32,7 @@ public class Prescription {
     /**
      * The name of the prescribed drug.
      */
-    @Column(name = "drug_name", nullable = false, length = 255)
+    @Column(name = "drug_name", nullable = false)
     private String drugName;
 
     /**

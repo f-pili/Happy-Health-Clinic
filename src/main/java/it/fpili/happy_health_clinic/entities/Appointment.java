@@ -63,7 +63,7 @@ public class Appointment {
     /**
      * The reason for the appointment.
      */
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String reason;
 
     /**
