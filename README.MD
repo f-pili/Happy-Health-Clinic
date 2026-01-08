@@ -356,6 +356,7 @@ DELETE /invoices/{id}                  # Delete invoice (ADMIN)
 3. Navigate to the project's root directory and enter the `/postman` folder
 4. Select the file: `happy_health_clinic.postman_collection.json`
 5. Click **Import** to finalize the process
+6. Run the collection through the **Runner** tab
 
 ### Variable Configuration
 
@@ -366,20 +367,6 @@ token = (auto-populated after login)
 patientId = (auto-populated)
 doctorId = (auto-populated)
 // ... other auto-managed variables
-```
-
-### Recommended Workflow
-```
-1. Setup → Create Admin User
-2. Authentication → Login (saves token)
-3. Authentication → Register Random Patient (3-5 times)
-4. Doctors → Create Random Doctor (2-3 times)
-5. Staff → Create Random Staff (1-2 times)
-6. Appointments → Create Appointment
-7. Appointments → Mark as COMPLETED
-8. Medical Records → Create Medical Record
-9. Prescriptions → Create Prescription
-10. Invoices → Create Invoice
 ```
 
 ### Collection Features
