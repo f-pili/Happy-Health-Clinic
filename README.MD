@@ -549,8 +549,11 @@ Folder 5: Appointments (9 requests)
 Folder 6: Medical Records (8 requests)
 Folder 7: Prescriptions (9 requests)
 Folder 8: Invoices (11 requests)
+Folder 9: DELETE REQUESTS (7 requests) ⚠️ Run separately for cleanup
 
 Total: 57 requests
+
+Note: Execute Folder 9 (DELETE REQUESTS) only after testing all other functionality, as it removes test data.
 ```
 
 ### Test Scenarios
