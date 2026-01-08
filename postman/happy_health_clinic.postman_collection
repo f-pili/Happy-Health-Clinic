@@ -1,11 +1,11 @@
 {
 	"info": {
-		"_postman_id": "07a68710-e0a0-484e-9cf8-dff39217279c",
+		"_postman_id": "38225409-8578-4bc2-b7df-8acc54e2983b",
 		"name": "Happy Health Clinic API",
 		"description": "Complete REST API for Happy Health Clinic - EPICODE Backend Project\n\nBase URL: [http://localhost:3001](http://localhost:3001)\n\nFeatures:  \n✅ JWT Authentication  \n✅ Full CRUD for Patients, Doctors, Staff  \n✅ Appointments with OpenWeather integration  \n✅ Medical Records & Prescriptions with FDA Drug API  \n✅ Invoices with Mailgun email notifications\n\nSetup:\n\n1. Run \"0. Setup → Create Admin\"\n    \n2. Run \"1. Authentication → Login\"\n    \n3. Execute requests in order\n    \n\nAuthor: Filippo Pili  \nDate: December 2025",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "50938774",
-		"_collection_link": "https://fil-pili-9212068.postman.co/workspace/Filippo-Pili's-Workspace~2dab0f19-c31c-471c-8c66-dd44ba733d82/collection/50938774-07a68710-e0a0-484e-9cf8-dff39217279c?action=share&source=collection_link&creator=50938774"
+		"_collection_link": "https://fil-pili-9212068.postman.co/workspace/Filippo-Pili's-Workspace~2dab0f19-c31c-471c-8c66-dd44ba733d82/collection/50938774-38225409-8578-4bc2-b7df-8acc54e2983b?action=share&source=collection_link&creator=50938774"
 	},
 	"item": [
 		{
@@ -281,54 +281,28 @@
 						{
 							"listen": "test",
 							"script": {
-								"exec": [
-									"if (pm.response.code === 201) {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    \r",
-									"    // Save patient ID (will overwrite previous, keeping only the last one)\r",
-									"    pm.collectionVariables.set(\"patientId\", jsonData.id);\r",
-									"    \r",
-									"    console.log(\"\");\r",
-									"    console.log(\"✅ PATIENT REGISTERED SUCCESSFULLY!\");\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"🆔 Patient ID:\", jsonData.id);\r",
-									"    console.log(\"👤 Name:\", jsonData.firstName, jsonData.lastName);\r",
-									"    console.log(\"📧 Email:\", jsonData.email);\r",
-									"    console.log(\"📋 Patient Code:\", jsonData.patientCode);\r",
-									"    console.log(\"🩸 Blood Type:\", jsonData.bloodType);\r",
-									"    if (jsonData.allergies) console.log(\"⚠️  Allergies:\", jsonData.allergies);\r",
-									"    if (jsonData.chronicDiseases) console.log(\"⚕️  Chronic Diseases:\", jsonData.chronicDiseases);\r",
-									"    console.log(\"💾 ID saved to collection variable 'patientId'\");\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"\");\r",
-									"    console.log(\"🔑 Login credentials:\");\r",
-									"    console.log(\"   Email:\", jsonData.email);\r",
-									"    console.log(\"   Password: Password123!\");\r",
-									"}\r",
-									"\r",
-									"pm.test(\"Patient registered successfully\", function () {\r",
-									"    pm.response.to.have.status(201);\r",
-									"});\r",
-									"\r",
-									"pm.test(\"Response has patient data\", function () {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    pm.expect(jsonData.id).to.exist;\r",
-									"    pm.expect(jsonData.email).to.exist;\r",
-									"    pm.expect(jsonData.role).to.eql(\"PATIENT\");\r",
-									"    pm.expect(jsonData.patientCode).to.exist;\r",
-									"});\r",
-									"\r",
-									"pm.test(\"Patient has required fields\", function () {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    pm.expect(jsonData.firstName).to.exist;\r",
-									"    pm.expect(jsonData.lastName).to.exist;\r",
-									"    pm.expect(jsonData.taxId).to.exist;\r",
-									"    pm.expect(jsonData.bloodType).to.exist;\r",
-									"});"
-								],
 								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has user data\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.exist;",
+									"    pm.expect(response.id).to.exist;",
+									"});",
+									"",
+									"pm.test(\"User has required fields\", function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.id).to.be.a('string');",
+									"    pm.expect(response.firstName).to.be.a('string');",
+									"    pm.expect(response.lastName).to.be.a('string');",
+									"    pm.expect(response.email).to.be.a('string');",
+									"    pm.expect(response.role).to.be.a('string');",
+									"    pm.expect(response.accessToken).to.be.a('string');",
+									"});"
+								]
 							}
 						}
 					],
@@ -794,44 +768,6 @@
 						}
 					},
 					"response": []
-				},
-				{
-					"name": "2.6 Delete Doctor",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Doctor deleted successfully\", function () {\r",
-									"    pm.response.to.have.status(204);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 204) {\r",
-									"    console.log(\"✅ Doctor deleted successfully!\");\r",
-									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"doctorId\"));\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/doctors/{{doctorId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"doctors",
-								"{{doctorId}}"
-							]
-						}
-					},
-					"response": []
 				}
 			],
 			"description": "Doctor management endpoints - CRUD operations for medical staff.\n\nDoctors are employees with medical licenses and specializations.  \nThey can create appointments, medical records, and prescriptions.\n\nRole: DOCTOR  \nEmployee Type: Medical Staff"
@@ -1260,44 +1196,6 @@
 						}
 					},
 					"response": []
-				},
-				{
-					"name": "3.6 Delete Staff",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Staff deleted successfully\", function () {\r",
-									"    pm.response.to.have.status(204);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 204) {\r",
-									"    console.log(\"✅ Staff member deleted successfully!\");\r",
-									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"staffId\"));\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/staff/{{staffId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"staff",
-								"{{staffId}}"
-							]
-						}
-					},
-					"response": []
 				}
 			],
 			"description": "Staff management endpoints - CRUD operations for administrative personnel.\n\nStaff members are employees who handle administrative tasks,  \nreception, nursing, and other non-medical functions.\n\nRole: ADMIN (for staff members)  \nEmployee Type: Administrative/Support Staff\n\nAvailable Staff Roles:\n\n- ADMIN: Administrative management\n    \n- RECEPTIONIST: Front desk operations\n    \n- NURSE: Patient care assistance\n    \n- ACCOUNTANT: Financial management\n    \n- HR: Human resources",
@@ -1581,54 +1479,9 @@
 						"description": "Updates patient information.\n\n⚠️ Access: ADMIN role only\n\nUpdatable fields:  \n✓ Phone number  \n✓ Address (address, city, province, zipCode)  \n✓ Blood type  \n✓ Allergies  \n✓ Chronic diseases\n\nNon-updatable fields:  \n✗ Name (firstName, lastName)  \n✗ Email  \n✗ Date of birth  \n✗ Tax ID  \n✗ Patient code\n\nUse this to:  \n\\- Update contact information  \n\\- Add/modify medical information  \n\\- Update address after patient moves"
 					},
 					"response": []
-				},
-				{
-					"name": "4.5 Delete Patient",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Patient deleted successfully\", function () {\r",
-									"    pm.response.to.have.status(204);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 204) {\r",
-									"    console.log(\"✅ Patient deleted successfully!\");\r",
-									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"patientId\"));\r",
-									"    console.log(\"\");\r",
-									"    console.log(\"⚠️  This will cascade delete:\");\r",
-									"    console.log(\"   - All appointments\");\r",
-									"    console.log(\"   - All medical records\");\r",
-									"    console.log(\"   - All prescriptions\");\r",
-									"    console.log(\"   - All invoices\");\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/patients/{{patientId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"patients",
-								"{{patientId}}"
-							]
-						},
-						"description": "Deletes a patient from the system.\n\nWARNING: This is a DESTRUCTIVE operation!  \nAccess: ADMIN role only\n\nThis will CASCADE DELETE:\n\n- All patient appointments\n    \n- All medical records\n    \n- All prescriptions\n    \n- All invoices\n    \n- All related data\n    \n\nResponse: 204 No Content (success)\n\nUse with caution!  \nThis action cannot be undone.\n\nConsider deactivating patients instead of deleting if you need to preserve historical data."
-					},
-					"response": []
 				}
 			],
-			"description": "StartFragmentPatient management endpoints - Retrieve, update, and delete patient records.  \n  \n⚠️ NOTE: Patient CREATION is in \"1. Authentication → Register New Patient\"  \n  \nPatients can be accessed by:  \n\\- ID (UUID)  \n\\- Patient Code (PAT-XXXX)  \n  \nRole: PATIENT  \nAccess: Doctors and Admins can view all patients  \nPatients can view their own recordsEndFragment"
+			"description": "Patient management endpoints - Retrieve, update, and delete patient records.\n\n⚠️ NOTE: Patient CREATION is in \"1. Authentication → Register New Patient\"\n\nPatients can be accessed by:  \n\\- ID (UUID)  \n\\- Patient Code (PAT-XXXX)\n\nRole: PATIENT  \nAccess: Doctors and Admins can view all patients  \nPatients can view their own records"
 		},
 		{
 			"name": "5. APPOINTMENTS",
@@ -2019,24 +1872,25 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 200) {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    var status = pm.request.url.path[pm.request.url.path.length - 1];\r",
-									"    \r",
-									"    console.log(`📋 APPOINTMENTS WITH STATUS: ${status}`);\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"📊 Found:\", jsonData.length);\r",
-									"    console.log(\"\");\r",
-									"    \r",
-									"    jsonData.forEach((apt, index) => {\r",
-									"        console.log(`${index + 1}. ${apt.patientName} → Dr. ${apt.doctorName}`);\r",
-									"        console.log(`   📅 ${apt.appointmentDateTime}`);\r",
-									"        console.log(\"   ──────────────────\");\r",
-									"   "
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    var status = pm.request.url.path[pm.request.url.path.length - 1];",
+									"    ",
+									"    console.log(`📋 APPOINTMENTS WITH STATUS: ${status}`);",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"    console.log(\"📊 Found:\", jsonData.length);",
+									"    console.log(\"\");",
+									"    ",
+									"    jsonData.forEach((apt, index) => {",
+									"        console.log(`${index + 1}. ${apt.patientName} → Dr. ${apt.doctorName}`);",
+									"        console.log(`   📅 ${apt.appointmentDateTime}`);",
+									"        console.log(\"   ──────────────────\");",
+									"    });",
+									"}"
 								],
 								"type": "text/javascript",
 								"packages": {},
@@ -2192,45 +2046,6 @@
 							]
 						},
 						"description": "Updates appointment details.\n\n**Access control**  \nThis endpoint is accessible only to users with DOCTOR or ADMIN roles.\n\n**Updatable fields**\n\n- Date and time, for rescheduling the appointment\n    \n- Duration\n    \n- Status\n    \n- Reason for the visit\n    \n- Internal notes\n    \n\n**Automatic behavior**\n\n- When the appointment is rescheduled to a different date, weather data associated with the appointment is automatically updated\n    \n\n**Common use cases**\n\n- Rescheduling an existing appointment\n    \n- Changing the appointment status, for example from SCHEDULED to CONFIRMED\n    \n- Updating the appointment duration\n    \n- Marking the appointment as COMPLETED after the visit\n    \n- Cancelling the appointment by setting the status to CANCELLED"
-					},
-					"response": []
-				},
-				{
-					"name": "5.9 Delete Appointment",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Appointment deleted successfully\", function () {\r",
-									"    pm.response.to.have.status(204);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 204) {\r",
-									"    console.log(\"✅ Appointment deleted!\");\r",
-									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"appointmentId\"));\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/appointments/{{appointmentId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"appointments",
-								"{{appointmentId}}"
-							]
-						},
-						"description": "Deletes an appointment.\n\n**Warning**\n\n- Destructive operation. This action permanently removes data.\n    \n\n**Access control**\n\n- ADMIN role only\n    \n\n**Cascade deletion**  \nThis operation will also delete all data associated with the appointment:\n\n- Medical records\n    \n- Prescriptions\n    \n- Invoices\n    \n\n**Response**\n\n- HTTP 204 No Content\n    \n\n**Important note**\n\n- For audit and traceability purposes, consider updating the appointment status to CANCELLED instead of deleting the appointment."
 					},
 					"response": []
 				}
@@ -2685,45 +2500,6 @@
 							]
 						},
 						"description": "Updates medical record information.\n\nAccess: DOCTOR, ADMIN\n\nUpdatable fields:\n✓ Record date\n✓ Diagnosis\n✓ Symptoms\n✓ Treatment\n✓ ICD code\n\nUse cases:\n- Add follow-up information\n- Correct diagnosis\n- Update treatment plan\n- Add additional notes"
-					},
-					"response": []
-				},
-				{
-					"name": "6.8 Delete Medical Record",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Medical record deleted successfully\", function () {\r",
-									"    pm.response.to.have.status(204);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 204) {\r",
-									"    console.log(\"✅ Medical record deleted!\");\r",
-									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"medicalRecordId\"));\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/medical-records/{{medicalRecordId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"medical-records",
-								"{{medicalRecordId}}"
-							]
-						},
-						"description": "Deletes a medical record.\n\n**Warning**\n\n- Destructive operation. This action permanently removes data.\n    \n\n**Access control**\n\n- ADMIN role only\n    \n\n**Cascade deletion**  \nThis operation will also delete all data associated with the medical record:\n\n- Prescriptions\n    \n\n**Response**\n\n- HTTP 204 No Content\n    \n\n**Important note**\n\n- Deleting medical records may violate legal requirements for medical record retention.\n    \n- Consider archiving the record instead of deleting it to ensure compliance and traceability."
 					},
 					"response": []
 				}
@@ -3373,45 +3149,6 @@
 						"description": "Updates prescription information.\n\n⚠️ Access: DOCTOR, ADMIN\n\nUpdatable fields:\n✓ Drug name\n✓ Dosage\n✓ Frequency\n✓ Duration\n✓ Dates\n✓ Instructions\n\nCommon use cases:\n- Extend prescription duration\n- Adjust dosage\n- Modify frequency\n- Update instructions\n- Correct errors"
 					},
 					"response": []
-				},
-				{
-					"name": "7.9 Delete Prescription",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Prescription deleted successfully\", function () {\r",
-									"    pm.response.to.have.status(204);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 204) {\r",
-									"    console.log(\"✅ Prescription deleted!\");\r",
-									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"prescriptionId\"));\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/prescriptions/{{prescriptionId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"prescriptions",
-								"{{prescriptionId}}"
-							]
-						},
-						"description": "Deletes a prescription.\n\n⚠️ WARNING: Destructive operation!  \n⚠️ Access: ADMIN only\n\nResponse: 204 No Content\n\n⚠️ IMPORTANT: Consider marking as \"discontinued\"  \ninstead of deleting for audit trail purposes.\n\nDeleting prescriptions may violate medical record retention requirements."
-					},
-					"response": []
 				}
 			],
 			"description": "Prescription management - Medication prescriptions with FDA drug information.\n\nPRESCRIPTIONS:  \nMedications prescribed by doctors for patients.  \nAutomatic integration with FDA Drug API for drug information.\n\nFDA DRUG API INTEGRATION:  \nEach prescription automatically fetches:  \n\\- Drug information and description  \n\\- Side effects  \n\\- Contraindications  \n\\- Usage warnings\n\n⚠️ REQUIREMENTS:  \n\\- Medical Record must exist  \n\\- Only doctors can create/update prescriptions  \n\\- Linked to specific medical record\n\nCONTAINS:  \n\\- Drug name and dosage  \n\\- Frequency and duration  \n\\- Start and end dates  \n\\- Instructions for patient  \n\\- FDA drug information (auto-populated)  \n\\- Side effects and contraindications\n\nAccess: Doctors create/update, Patients can view their own"
@@ -3570,43 +3307,45 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 200) {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    \r",
-									"    console.log(\"💰 INVOICES LIST\");\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"📊 Total:\", jsonData.totalElements);\r",
-									"    console.log(\"📄 Page:\", jsonData.number + 1, \"of\", jsonData.totalPages);\r",
-									"    console.log(\"\");\r",
-									"    \r",
-									"    let totalPending = 0;\r",
-									"    let totalPaid = 0;\r",
-									"    \r",
-									"    jsonData.content.forEach((inv, index) => {\r",
-									"        const statusIcon = inv.status === 'PAID' ? '✅' : \r",
-									"                          inv.status === 'PENDING' ? '💳' : \r",
-									"                          inv.status === 'CANCELLED' ? '❌' : '⏰';\r",
-									"        \r",
-									"        console.log(`${index + 1}. ${statusIcon} ${inv.invoiceNumber}`);\r",
-									"        console.log(`   👤 ${inv.patientName}`);\r",
-									"        console.log(`   💰 €${inv.totalAmount.toFixed(2)} | 📊 ${inv.status}`);\r",
-									"        console.log(`   📅 ${inv.issueDate} → Due: ${inv.dueDate}`);\r",
-									"        console.log(\"   ──────────────────\");\r",
-									"        \r",
-									"        if (inv.status === 'PENDING') totalPending += inv.totalAmount;\r",
-									"        if (inv.status === 'PAID') totalPaid += inv.totalAmount;\r",
-									"    });\r",
-									"    \r",
-									"    if (jsonData.content.length > 0) {\r",
-									"        console.log(\"\");\r",
-									"        console.log(\"💰 TOTALS:\");\r",
-									"        console.log(\"   Pending: €\" + totalPending.toFixed(2));\r",
-									"        console.log(\"   Paid: €\" + totalPaid.toFixed(2));\r",
-									"    }\r",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    console.log(\"💰 INVOICES LIST\");",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"    console.log(\"📊 Total:\", jsonData.totalElements);",
+									"    console.log(\"📄 Page:\", (jsonData.number || 0) + 1, \"of\", jsonData.totalPages || 0);",
+									"    console.log(\"\");",
+									"    ",
+									"    let totalPending = 0;",
+									"    let totalPaid = 0;",
+									"    ",
+									"    jsonData.content.forEach((inv, index) => {",
+									"        const statusIcon = inv.status === 'PAID' ? '✅' : ",
+									"                          inv.status === 'PENDING' ? '💳' : ",
+									"                          inv.status === 'CANCELLED' ? '❌' : '⏰';",
+									"        ",
+									"        const amount = inv.totalAmount != null ? inv.totalAmount : 0;",
+									"        ",
+									"        console.log(`${index + 1}. ${statusIcon} ${inv.invoiceNumber}`);",
+									"        console.log(`   👤 ${inv.patientName}`);",
+									"        console.log(`   💰 €${amount.toFixed(2)} | 📊 ${inv.status}`);",
+									"        console.log(`   📅 ${inv.issueDate} → Due: ${inv.dueDate}`);",
+									"        console.log(\"   ──────────────────\");",
+									"        ",
+									"        if (inv.status === 'PENDING') totalPending += amount;",
+									"        if (inv.status === 'PAID') totalPaid += amount;",
+									"    });",
+									"    ",
+									"    if (jsonData.content.length > 0) {",
+									"        console.log(\"\");",
+									"        console.log(\"💰 TOTALS:\");",
+									"        console.log(\"   Pending: €\" + totalPending.toFixed(2));",
+									"        console.log(\"   Paid: €\" + totalPaid.toFixed(2));",
+									"    }",
 									"}"
 								],
 								"type": "text/javascript",
@@ -3718,19 +3457,19 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 200) {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    \r",
-									"    console.log(\"💰 INVOICE FOUND BY NUMBER\");\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"📄 Invoice Number:\", jsonData.invoiceNumber);\r",
-									"    console.log(\"👤 Patient:\", jsonData.patientName);\r",
-									"    console.log(\"💰 Total: €\" + jsonData.totalAmount.toFixed(2));\r",
-									"    console.log(\"📊 Status:\", jsonData.status);\r",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    console.log(\"💰 INVOICE FOUND BY NUMBER\");",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"    console.log(\"📄 Invoice Number:\", jsonData.invoiceNumber);",
+									"    console.log(\"👤 Patient:\", jsonData.patientName);",
+									"    console.log(\"💰 Total: €\" + jsonData.amount.toFixed(2));",
+									"    console.log(\"📊 Status:\", jsonData.status);",
 									"}"
 								],
 								"type": "text/javascript",
@@ -3743,14 +3482,14 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/invoices/number/INV-2025-0001",
+							"raw": "{{baseUrl}}/invoices/number/INV-2026-0001",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"invoices",
 								"number",
-								"INV-2025-0001"
+								"INV-2026-0001"
 							]
 						},
 						"description": "Retrieves an invoice by its invoice number.  \n  \nURL Pattern: /invoices/number/{invoiceNumber}  \n  \nExample numbers:  \n\\- INV-\\[YEAR}-0001\n\n\\- INV-\\[YEAR}-0002\n\n\\- INV-\\[YEAR}-0003  \n  \n  \nAccess: PATIENT (own), ADMIN  \n  \nUseful for:  \n\\- Quick invoice lookup  \n\\- Patient inquiries  \n\\- Payment processing  \n\\- External system integration"
@@ -3764,40 +3503,43 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 200) {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    \r",
-									"    console.log(`💰 INVOICES FOR PATIENT`);\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"📊 Total Invoices:\", jsonData.length);\r",
-									"    console.log(\"\");\r",
-									"    \r",
-									"    let totalDue = 0;\r",
-									"    let totalPaid = 0;\r",
-									"    \r",
-									"    jsonData.forEach((inv, index) => {\r",
-									"        const statusIcon = inv.status === 'PAID' ? '✅' : \r",
-									"                          inv.status === 'PENDING' ? '💳' : '❌';\r",
-									"        \r",
-									"        console.log(`${index + 1}. ${statusIcon} ${inv.invoiceNumber}`);\r",
-									"        console.log(`   💰 €${inv.totalAmount.toFixed(2)}`);\r",
-									"        console.log(`   📅 ${inv.issueDate} | Due: ${inv.dueDate}`);\r",
-									"        console.log(`   📊 ${inv.status}`);\r",
-									"        console.log(\"   ──────────────────\");\r",
-									"        \r",
-									"        if (inv.status === 'PENDING') totalDue += inv.totalAmount;\r",
-									"        if (inv.status === 'PAID') totalPaid += inv.totalAmount;\r",
-									"    });\r",
-									"    \r",
-									"    console.log(\"\");\r",
-									"    console.log(\"💰 PATIENT TOTALS:\");\r",
-									"    console.log(\"   Amount Due: €\" + totalDue.toFixed(2));\r",
-									"    console.log(\"   Amount Paid: €\" + totalPaid.toFixed(2));\r",
-									"    console.log(\"   Grand Total: €\" + (totalDue + totalPaid).toFixed(2));\r",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    console.log(`💰 INVOICES FOR PATIENT`);",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"    console.log(\"📊 Total Invoices:\", jsonData.length);",
+									"    console.log(\"\");",
+									"    ",
+									"    let totalDue = 0;",
+									"    let totalPaid = 0;",
+									"    ",
+									"    jsonData.forEach((inv, index) => {",
+									"        const statusIcon = inv.status === 'PAID' ? '✅' : ",
+									"                          inv.status === 'PENDING' ? '💳' : '❌';",
+									"        ",
+									"        // Calculate totalAmount from amount + taxAmount",
+									"        const totalAmount = inv.amount + inv.taxAmount;",
+									"        ",
+									"        console.log(`${index + 1}. ${statusIcon} ${inv.invoiceNumber}`);",
+									"        console.log(`   💰 €${totalAmount.toFixed(2)}`);",
+									"        console.log(`   📅 ${inv.issueDate} | Due: ${inv.dueDate}`);",
+									"        console.log(`   📊 ${inv.status}`);",
+									"        console.log(\"   ──────────────────\");",
+									"        ",
+									"        if (inv.status === 'PENDING') totalDue += totalAmount;",
+									"        if (inv.status === 'PAID') totalPaid += totalAmount;",
+									"    });",
+									"    ",
+									"    console.log(\"\");",
+									"    console.log(\"💰 PATIENT TOTALS:\");",
+									"    console.log(\"   Amount Due: €\" + totalDue.toFixed(2));",
+									"    console.log(\"   Amount Paid: €\" + totalPaid.toFixed(2));",
+									"    console.log(\"   Grand Total: €\" + (totalDue + totalPaid).toFixed(2));",
 									"}"
 								],
 								"type": "text/javascript",
@@ -3831,33 +3573,33 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 200) {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    var status = pm.request.url.path[pm.request.url.path.length - 1];\r",
-									"    \r",
-									"    console.log(`💳 INVOICES WITH STATUS: ${status}`);\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"📊 Found:\", jsonData.length);\r",
-									"    console.log(\"\");\r",
-									"    \r",
-									"    let total = 0;\r",
-									"    jsonData.forEach((inv, index) => {\r",
-									"        console.log(`${index + 1}. ${inv.invoiceNumber}`);\r",
-									"        console.log(`   👤 ${inv.patientName}`);\r",
-									"        console.log(`   💰 €${inv.totalAmount.toFixed(2)}`);\r",
-									"        console.log(`   📅 Due: ${inv.dueDate}`);\r",
-									"        console.log(\"   ──────────────────\");\r",
-									"        total += inv.totalAmount;\r",
-									"    });\r",
-									"    \r",
-									"    if (jsonData.length > 0) {\r",
-									"        console.log(\"\");\r",
-									"        console.log(\"💰 Total \" + status + \": €\" + total.toFixed(2));\r",
-									"    }\r",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    var status = pm.request.url.path[pm.request.url.path.length - 1];",
+									"    ",
+									"    console.log(`💳 INVOICES WITH STATUS: ${status}`);",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"    console.log(\"📊 Found:\", jsonData.length);",
+									"    console.log(\"\");",
+									"    ",
+									"    let total = 0;",
+									"    jsonData.forEach((inv, index) => {",
+									"        console.log(`${index + 1}. ${inv.invoiceNumber}`);",
+									"        console.log(`   👤 ${inv.patientName}`);",
+									"        console.log(`   💰 €${inv.amount.toFixed(2)}`);",
+									"        console.log(`   📅 Due: ${inv.dueDate}`);",
+									"        console.log(\"   ──────────────────\");",
+									"        total += inv.amount;",
+									"    });",
+									"    ",
+									"    if (jsonData.length > 0) {",
+									"        console.log(\"\");",
+									"        console.log(\"💰 Total \" + status + \": €\" + total.toFixed(2));",
+									"    }",
 									"}"
 								],
 								"type": "text/javascript",
@@ -4019,18 +3761,18 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Invoice updated successfully\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
-									"\r",
-									"if (pm.response.code === 200) {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    \r",
-									"    console.log(\"✅ INVOICE UPDATED!\");\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"📄 Invoice:\", jsonData.invoiceNumber);\r",
-									"    console.log(\"💰 Total: €\" + jsonData.totalAmount.toFixed(2));\r",
-									"    console.log(\"📋 Description:\", jsonData.description.substring(0, 60) + \"...\");\r",
+									"pm.test(\"Invoice updated successfully\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    console.log(\"✅ INVOICE UPDATED!\");",
+									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");",
+									"    console.log(\"📄 Invoice:\", jsonData.invoiceNumber);",
+									"    console.log(\"💰 Total: €\" + (jsonData.amount + jsonData.taxAmount).toFixed(2));",
+									"    console.log(\"📋 Description:\", jsonData.description.substring(0, 60) + \"...\");",
 									"}"
 								],
 								"type": "text/javascript",
@@ -4077,16 +3819,22 @@
 									"});\r",
 									"\r",
 									"if (pm.response.code === 200) {\r",
-									"    var jsonData = pm.response.json();\r",
-									"    \r",
-									"    console.log(\"✅ PAYMENT RECEIVED!\");\r",
-									"    console.log(\"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\");\r",
-									"    console.log(\"📄 Invoice:\", jsonData.invoiceNumber);\r",
-									"    console.log(\"💰 Amount: €\" + jsonData.totalAmount.toFixed(2));\r",
-									"    console.log(\"📊 Status:\", jsonData.status);\r",
-									"    console.log(\"💳 Payment Method:\", jsonData.paymentMethod);\r",
-									"    console.log(\"📅 Payment Date:\", jsonData.paymentDate);\r",
-									"}"
+									"    const jsonData = pm.response.json();\r",
+									"\r",
+									"    const amount = Number(jsonData.totalAmount);\r",
+									"\r",
+									"    console.log(\"PAYMENT RECEIVED\");\r",
+									"    console.log(\"------------------------------\");\r",
+									"    console.log(\"Invoice:\", jsonData.invoiceNumber ?? \"N/A\");\r",
+									"    console.log(\r",
+									"        \"Amount:\",\r",
+									"        isNaN(amount) ? \"N/A\" : \"€\" + amount.toFixed(2)\r",
+									"    );\r",
+									"    console.log(\"Status:\", jsonData.status ?? \"N/A\");\r",
+									"    console.log(\"Payment Method:\", jsonData.paymentMethod ?? \"N/A\");\r",
+									"    console.log(\"Payment Date:\", jsonData.paymentDate ?? \"N/A\");\r",
+									"}\r",
+									""
 								],
 								"type": "text/javascript",
 								"packages": {},
@@ -4117,9 +3865,15 @@
 						"description": "Marks an invoice as paid.\n\nQuery Parameter:\n- paymentMethod: Payment method used\n\nExamples:\n?paymentMethod=Credit Card\n?paymentMethod=Cash\n?paymentMethod=Bank Transfer\n?paymentMethod=Insurance\n\nAutomatically sets:\n- status = PAID\n- paymentDate = current date\n- paymentMethod = provided value\n\nAccess: PATIENT (own), ADMIN\n\nUse this after receiving payment."
 					},
 					"response": []
-				},
+				}
+			],
+			"description": "Invoice management - Billing and payment tracking with email notifications.\n\nINVOICES:  \nFinancial documents for patient appointments and services.  \nAutomatic email notifications via Mailgun API.\n\nMAILGUN EMAIL INTEGRATION:  \nEach invoice creation sends automatic email to patient with:  \n\\- Invoice details and amount  \n\\- Payment due date  \n\\- Payment instructions  \n\\- Clinic contact information\n\n⚠️ REQUIREMENTS:  \n\\- Patient must exist  \n\\- Appointment recommended (optional)  \n\\- Only admins can create/manage invoices\n\nINVOICE STATUSES:  \nPENDING - Awaiting payment  \nPAID - Payment received  \nCANCELLED - Invoice cancelled  \nOVERDUE - Past due date\n\nCONTAINS:  \n\\- Unique invoice number (auto-generated)  \n\\- Patient information  \n\\- Appointment details (optional)  \n\\- Amount and tax  \n\\- Issue and due dates  \n\\- Payment status and method  \n\\- Description of services\n\nAccess: Admins manage all, Patients view their own"
+		},
+		{
+			"name": "9. DELETE REQUESTS",
+			"item": [
 				{
-					"name": "8.11 Delete Invoice",
+					"name": "9.1 Delete Invoice",
 					"event": [
 						{
 							"listen": "test",
@@ -4156,9 +3910,246 @@
 						"description": "StartFragmentDeletes an invoice.\n\n⚠️ WARNING: Destructive operation!  \n⚠️ Access: ADMIN only\n\nResponse: 204 No Content\n\n⚠️ IMPORTANT: Deleting invoices may violate  \naccounting and tax regulations.\n\nConsider marking as CANCELLED instead:  \n\\- Preserves audit trail  \n\\- Maintains financial records  \n\\- Complies with regulationsEndFragment"
 					},
 					"response": []
+				},
+				{
+					"name": "9.2 Delete Prescription",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Prescription deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Prescription deleted!\");\r",
+									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"prescriptionId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/prescriptions/{{prescriptionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"prescriptions",
+								"{{prescriptionId}}"
+							]
+						},
+						"description": "Deletes a prescription.\n\n⚠️ WARNING: Destructive operation!  \n⚠️ Access: ADMIN only\n\nResponse: 204 No Content\n\n⚠️ IMPORTANT: Consider marking as \"discontinued\"  \ninstead of deleting for audit trail purposes.\n\nDeleting prescriptions may violate medical record retention requirements."
+					},
+					"response": []
+				},
+				{
+					"name": "9.3 Delete Medical Record",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Medical record deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Medical record deleted!\");\r",
+									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"medicalRecordId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/medical-records/{{medicalRecordId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"medical-records",
+								"{{medicalRecordId}}"
+							]
+						},
+						"description": "Deletes a medical record.\n\n**Warning**\n\n- Destructive operation. This action permanently removes data.\n    \n\n**Access control**\n\n- ADMIN role only\n    \n\n**Cascade deletion**  \nThis operation will also delete all data associated with the medical record:\n\n- Prescriptions\n    \n\n**Response**\n\n- HTTP 204 No Content\n    \n\n**Important note**\n\n- Deleting medical records may violate legal requirements for medical record retention.\n    \n- Consider archiving the record instead of deleting it to ensure compliance and traceability."
+					},
+					"response": []
+				},
+				{
+					"name": "9.4 Delete Appointment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Appointment deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Appointment deleted!\");\r",
+									"    console.log(\"🗑️  ID:\", pm.collectionVariables.get(\"appointmentId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointmentId}}"
+							]
+						},
+						"description": "Deletes an appointment.\n\n**Warning**\n\n- Destructive operation. This action permanently removes data.\n    \n\n**Access control**\n\n- ADMIN role only\n    \n\n**Cascade deletion**  \nThis operation will also delete all data associated with the appointment:\n\n- Medical records\n    \n- Prescriptions\n    \n- Invoices\n    \n\n**Response**\n\n- HTTP 204 No Content\n    \n\n**Important note**\n\n- For audit and traceability purposes, consider updating the appointment status to CANCELLED instead of deleting the appointment."
+					},
+					"response": []
+				},
+				{
+					"name": "9.5 Delete Doctor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Doctor deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Doctor deleted successfully!\");\r",
+									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"doctorId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/doctors/{{doctorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"doctors",
+								"{{doctorId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "9.6 Delete Staff",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Staff deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Staff member deleted successfully!\");\r",
+									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"staffId\"));\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/staff/{{staffId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"staff",
+								"{{staffId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "9.7 Delete Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Patient deleted successfully\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 204) {\r",
+									"    console.log(\"✅ Patient deleted successfully!\");\r",
+									"    console.log(\"🗑️  Deleted ID:\", pm.collectionVariables.get(\"patientId\"));\r",
+									"    console.log(\"\");\r",
+									"    console.log(\"⚠️  This will cascade delete:\");\r",
+									"    console.log(\"   - All appointments\");\r",
+									"    console.log(\"   - All medical records\");\r",
+									"    console.log(\"   - All prescriptions\");\r",
+									"    console.log(\"   - All invoices\");\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"patients",
+								"{{patientId}}"
+							]
+						},
+						"description": "Deletes a patient from the system.\n\nWARNING: This is a DESTRUCTIVE operation!  \nAccess: ADMIN role only\n\nThis will CASCADE DELETE:\n\n- All patient appointments\n    \n- All medical records\n    \n- All prescriptions\n    \n- All invoices\n    \n- All related data\n    \n\nResponse: 204 No Content (success)\n\nUse with caution!  \nThis action cannot be undone.\n\nConsider deactivating patients instead of deleting if you need to preserve historical data."
+					},
+					"response": []
 				}
-			],
-			"description": "Invoice management - Billing and payment tracking with email notifications.\n\nINVOICES:  \nFinancial documents for patient appointments and services.  \nAutomatic email notifications via Mailgun API.\n\nMAILGUN EMAIL INTEGRATION:  \nEach invoice creation sends automatic email to patient with:  \n\\- Invoice details and amount  \n\\- Payment due date  \n\\- Payment instructions  \n\\- Clinic contact information\n\n⚠️ REQUIREMENTS:  \n\\- Patient must exist  \n\\- Appointment recommended (optional)  \n\\- Only admins can create/manage invoices\n\nINVOICE STATUSES:  \n💳 PENDING - Awaiting payment  \n✅ PAID - Payment received  \n❌ CANCELLED - Invoice cancelled  \n⏰ OVERDUE - Past due date\n\nCONTAINS:  \n\\- Unique invoice number (auto-generated)  \n\\- Patient information  \n\\- Appointment details (optional)  \n\\- Amount and tax  \n\\- Issue and due dates  \n\\- Payment status and method  \n\\- Description of services\n\nAccess: Admins manage all, Patients view their own"
+			]
 		}
 	],
 	"auth": {
@@ -4214,10 +4205,6 @@
 		},
 		{
 			"key": "patientId",
-			"value": ""
-		},
-		{
-			"key": "doctorId",
 			"value": ""
 		},
 		{
@@ -4493,11 +4480,19 @@
 			"value": ""
 		},
 		{
-			"key": "tempInvoiceTaxAmount",
+			"key": "todayDate",
 			"value": ""
 		},
 		{
-			"key": "todayDate",
+			"key": "doctorId",
+			"value": ""
+		},
+		{
+			"key": "extendedEndDate",
+			"value": ""
+		},
+		{
+			"key": "tempInvoiceTaxAmount",
 			"value": ""
 		}
 	]
